@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avistamientos eBird</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
+        h1 { color: #2c3e50; }
+        .panel-control { background: #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        input[type="password"], input[type="text"] { padding: 10px; width: 250px; border: 1px solid #bdc3c7; border-radius: 4px; margin-right: 10px; }
+        .boton { background-color: #27ae60; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; }
+        .boton:hover { background-color: #2ecc71; }
+        .avistamiento { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .nombre-comun { font-weight: bold; font-size: 1.3em; color: #2980b9; }
+        .nombre-cientifico { font-style: italic; color: #7f8c8d; }
+        .lugar-fecha { font-size: 0.95em; color: #34495e; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>🐦 Últimos Avistamientos (eBird)</h1>
+    
+    <div class="panel-control">
+        <label><strong>1. Tu API Key de eBird:</strong></label><br>
+        <input type="password" id="inputApiKey" placeholder="Pega tu API Key aquí"><br><br>
+        
+        <label><strong>2. Código de Región (Ej. CL, AR, US):</strong></label><br>
+        <input type="text" id="inputRegion" value="CL"><br><br>
+
+        <button class="boton" onclick="obtenerDatos()">Cargar Avistamientos</button>
+    </div>
+
+    <div id="resultados"></div>
+
+    <script>
+        async function obtenerDatos() {
+            const apiKey = document.getElementById('inputApiKey').value.trim();
+            const region = document.getElementById('inputRegion').value.trim().toUpperCase();
+            const resultados = document.getElementById('resultados');
+
+            if (!apiKey) {
+                resultados.innerHTML = '<p style="color:red;">⚠️ Por favor, ingresa tu API Key.</p>';
+                return;
+            }
+
+            resultados.innerHTML = '<p>Buscando aves...</p>';
+            const url = `https://api.ebird.org/v2/data/obs/${region}/recent`;
+
+            try {
+                const respuesta = await fetch(url, {
+                    headers: { 'X-eBirdApiToken': apiKey }
+                });
+
+                if (!respuesta.ok) throw new Error('Error al conectar con eBird. Verifica tu API Key o la región.');
+
+                const datos = await respuesta.json();
+                mostrarDatos(datos);
+            } catch (error) {
+                resultados.innerHTML = `<p style="color:red;">${error.message}</p>`;
+            }
+        }
+
+        function mostrarDatos(avistamientos) {
+            const resultados = document.getElementById('resultados');
+            resultados.innerHTML = ''; 
+
+            if (avistamientos.length === 0) {
+                resultados.innerHTML = '<p>No se encontraron avistamientos recientes.</p>';
+                return;
+            }
+
+            avistamientos.slice(0, 20).forEach(ave => {
+                const div = document.createElement('div');
+                div.className = 'avistamiento';
+                const fecha = ave.obsDt ? ave.obsDt.replace(' ', ' a las ') : 'Desconocida';
+                
+                div.innerHTML = `
+                    <div class="nombre-comun">${ave.comName}</div>
+                    <div class="nombre-cientifico">${ave.sciName}</div>
+                    <div class="lugar-fecha">📍 ${ave.locName}</div>
+                    <div class="lugar-fecha">🕒 ${fecha} | 👀 Cantidad: ${ave.howMany || '?' }</div>
+                `;
+                resultados.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
