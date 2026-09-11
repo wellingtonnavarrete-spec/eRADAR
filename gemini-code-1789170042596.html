@@ -1,88 +1,219 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-CL">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Avistamientos eBird</title>
+    <title>Dashboard eBird Chile</title>
+    
+    <!-- Librería Leaflet para el Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
-        h1 { color: #2c3e50; }
-        .panel-control { background: #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        input[type="password"], input[type="text"] { padding: 10px; width: 250px; border: 1px solid #bdc3c7; border-radius: 4px; margin-right: 10px; }
-        .boton { background-color: #27ae60; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; }
-        .boton:hover { background-color: #2ecc71; }
-        .avistamiento { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-        .nombre-comun { font-weight: bold; font-size: 1.3em; color: #2980b9; }
-        .nombre-cientifico { font-style: italic; color: #7f8c8d; }
-        .lugar-fecha { font-size: 0.95em; color: #34495e; margin-top: 5px; }
+        /* Estilos generales y colores basados en tu captura de pantalla */
+        :root {
+            --bg-color: #f2f5f3;
+            --card-bg: #ffffff;
+            --text-dark: #103323; /* Verde muy oscuro para los números */
+            --text-muted: #7b8580; /* Gris para los subtítulos */
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+        }
+
+        .contenedor { max-width: 800px; margin: 0 auto; }
+
+        /* Controles (API Key) */
+        .panel-control { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="password"] { 
+            padding: 10px; width: 100%; max-width: 300px; 
+            border: 1px solid #ccc; border-radius: 8px; 
+        }
+        .boton { 
+            background-color: #103323; color: white; border: none; 
+            padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 8px; 
+        }
+
+        /* --- ESTILOS DEL DASHBOARD (Igual a tu imagen) --- */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .tarjeta {
+            background-color: var(--card-bg);
+            border-radius: 20px; /* Bordes bien redondeados como en la imagen */
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .tarjeta-numero {
+            font-size: 2.8em;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin: 0 0 5px 0;
+            line-height: 1;
+        }
+        
+        .tarjeta-titulo {
+            font-size: 1.1em;
+            color: var(--text-muted);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* --- ESTILOS DEL MAPA --- */
+        #mapa { 
+            height: 500px; 
+            width: 100%; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            z-index: 1; /* Para que no se sobreponga a otros elementos */
+        }
+
+        /* Estilo del popup en el mapa */
+        .popup-ave { font-weight: bold; color: #2980b9; font-size: 1.1em; margin-bottom:5px;}
+        .popup-lugar { font-size: 0.9em; color: #555; }
     </style>
 </head>
 <body>
 
-    <h1>🐦 Últimos Avistamientos (eBird)</h1>
-    
-    <div class="panel-control">
-        <label><strong>1. Tu API Key de eBird:</strong></label><br>
-        <input type="password" id="inputApiKey" placeholder="Pega tu API Key aquí"><br><br>
-        
-        <label><strong>2. Código de Región (Ej. CL, AR, US):</strong></label><br>
-        <input type="text" id="inputRegion" value="CL"><br><br>
+    <div class="contenedor">
+        <!-- Input de API Key por seguridad -->
+        <div class="panel-control">
+            <input type="password" id="inputApiKey" placeholder="Pega tu API Key de eBird aquí">
+            <button class="boton" onclick="iniciarBusqueda()">Actualizar Datos</button>
+        </div>
 
-        <button class="boton" onclick="obtenerDatos()">Cargar Avistamientos</button>
+        <!-- Dashboard (Replicando tu captura de pantalla) -->
+        <div class="dashboard">
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-objetivo">--</p>
+                <p class="tarjeta-titulo">Especies objetivo</p>
+            </div>
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-hoy">--</p>
+                <p class="tarjeta-titulo">Detectadas hoy</p>
+            </div>
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-rareza">--</p>
+                <p class="tarjeta-titulo">Rareza cercana</p>
+            </div>
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-tiempo">15 min</p>
+                <p class="tarjeta-titulo">Próxima revisión</p>
+            </div>
+        </div>
+
+        <!-- Contenedor del Mapa -->
+        <div id="mapa"></div>
     </div>
 
-    <div id="resultados"></div>
-
     <script>
-        async function obtenerDatos() {
-            const apiKey = document.getElementById('inputApiKey').value.trim();
-            const region = document.getElementById('inputRegion').value.trim().toUpperCase();
-            const resultados = document.getElementById('resultados');
+        // Variables globales
+        let mapa;
+        let marcadores = [];
 
+        // Inicializar el mapa al cargar la página centrado en Chile
+        document.addEventListener("DOMContentLoaded", () => {
+            mapa = L.map('mapa').setView([-35.6, -71.5], 5); // Latitud, Longitud y Zoom (Centro de Chile)
+            
+            // Cargar el diseño de los mapas (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(mapa);
+        });
+
+        async function iniciarBusqueda() {
+            const apiKey = document.getElementById('inputApiKey').value.trim();
             if (!apiKey) {
-                resultados.innerHTML = '<p style="color:red;">⚠️ Por favor, ingresa tu API Key.</p>';
+                alert("Por favor, ingresa tu API Key de eBird.");
                 return;
             }
 
-            resultados.innerHTML = '<p>Buscando aves...</p>';
-            const url = `https://api.ebird.org/v2/data/obs/${region}/recent`;
+            // sppLocale=es-CL asegura que devuelva "Loica", "Chincol", etc.
+            const urlRecientes = `https://api.ebird.org/v2/data/obs/CL/recent?sppLocale=es-CL`;
+            const urlRarezas = `https://api.ebird.org/v2/data/obs/CL/recent/notable?sppLocale=es-CL&detail=simple`;
 
             try {
-                const respuesta = await fetch(url, {
-                    headers: { 'X-eBirdApiToken': apiKey }
-                });
+                // Hacemos dos peticiones simultáneas: Aves recientes y Rarezas
+                const [resRecientes, resRarezas] = await Promise.all([
+                    fetch(urlRecientes, { headers: { 'X-eBirdApiToken': apiKey } }),
+                    fetch(urlRarezas, { headers: { 'X-eBirdApiToken': apiKey } })
+                ]);
 
-                if (!respuesta.ok) throw new Error('Error al conectar con eBird. Verifica tu API Key o la región.');
+                if (!resRecientes.ok) throw new Error("Error en la API Key o conexión.");
 
-                const datos = await respuesta.json();
-                mostrarDatos(datos);
+                const avesRecientes = await resRecientes.json();
+                const avesRaras = await resRarezas.json();
+
+                actualizarDashboard(avesRecientes, avesRaras);
+                actualizarMapa(avesRecientes);
+
             } catch (error) {
-                resultados.innerHTML = `<p style="color:red;">${error.message}</p>`;
+                alert(error.message);
             }
         }
 
-        function mostrarDatos(avistamientos) {
-            const resultados = document.getElementById('resultados');
-            resultados.innerHTML = ''; 
+        function actualizarDashboard(recientes, raras) {
+            // Contamos cuántas especies distintas se han visto (Especies objetivo)
+            const especiesUnicas = new Set(recientes.map(a => a.speciesCode)).size;
+            
+            // Filtramos cuántas fueron detectadas exclusivamente hoy
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            const detectadasHoy = recientes.filter(a => a.obsDt.startsWith(fechaHoy)).length;
 
-            if (avistamientos.length === 0) {
-                resultados.innerHTML = '<p>No se encontraron avistamientos recientes.</p>';
-                return;
-            }
+            // Actualizamos los números en el HTML
+            document.getElementById('val-objetivo').innerText = especiesUnicas || 0;
+            document.getElementById('val-hoy').innerText = detectadasHoy || 0;
+            document.getElementById('val-rareza').innerText = raras.length || 0;
+        }
 
-            avistamientos.slice(0, 20).forEach(ave => {
-                const div = document.createElement('div');
-                div.className = 'avistamiento';
-                const fecha = ave.obsDt ? ave.obsDt.replace(' ', ' a las ') : 'Desconocida';
-                
-                div.innerHTML = `
-                    <div class="nombre-comun">${ave.comName}</div>
-                    <div class="nombre-cientifico">${ave.sciName}</div>
-                    <div class="lugar-fecha">📍 ${ave.locName}</div>
-                    <div class="lugar-fecha">🕒 ${fecha} | 👀 Cantidad: ${ave.howMany || '?' }</div>
-                `;
-                resultados.appendChild(div);
+        function actualizarMapa(aves) {
+            // Limpiar marcadores anteriores
+            marcadores.forEach(m => mapa.removeLayer(m));
+            marcadores = [];
+
+            // Añadir un marcador por cada avistamiento
+            aves.forEach(ave => {
+                if(ave.lat && ave.lng) {
+                    const marcador = L.marker([ave.lat, ave.lng]).addTo(mapa);
+                    
+                    // Contenido de la ventana que se abre al hacer clic
+                    const popupHTML = `
+                        <div class="popup-ave">🐦 ${ave.comName}</div>
+                        <div class="popup-lugar">📍 ${ave.locName}</div>
+                        <div class="popup-lugar">🕒 ${ave.obsDt}</div>
+                    `;
+                    
+                    marcador.bindPopup(popupHTML);
+                    marcadores.push(marcador);
+                }
             });
+
+            // Ajustar el zoom para que se vean todos los puntos (opcional)
+            if(marcadores.length > 0) {
+                const grupo = new L.featureGroup(marcadores);
+                mapa.fitBounds(grupo.getBounds(), { padding: [20, 20] });
+            }
         }
     </script>
 </body>
