@@ -3,23 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Avistamientos Chile - Rarezas</title>
+    <title>Avistar - Aves de Chile</title>
     
     <!-- Fuentes y Estilos -->
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Leaflet CSS (Mapa) y Routing Machine -->
+    <!-- Leaflet CSS y Routing -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 
     <style>
         :root {
-            --green-light: #e8f5e9;
-            --green-primary: #81c784;
-            --green-dark: #2e7d32;
+            --brand-dark: #2e7d32;
+            --brand-green: #388e3c;
+            --btn-whatsapp: #2dd4bf; 
+            --btn-ebird-bg: #2b7a3b;
+            --btn-ebird-text: #0ea5e9;
+            --btn-maps: #3b82f6;
+            --btn-route: #f97316;
+            --text-dark: #1f2937;
+            --text-gray: #6b7280;
+            --bg-light: #f3f4f6;
             --white: #ffffff;
-            --gray-text: #424242;
         }
 
         * {
@@ -30,128 +36,260 @@
         }
 
         body {
-            background-color: var(--white);
-            color: var(--gray-text);
             display: flex;
             flex-direction: column;
             height: 100vh;
+            overflow: hidden;
+            background: var(--bg-light);
         }
 
-        /* Header */
+        /* --- HEADER --- */
         header {
-            background-color: var(--green-primary);
-            color: var(--white);
-            padding: 15px 20px;
+            background-color: var(--white);
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 2000;
+            position: relative;
         }
 
-        header h1 {
-            font-size: 1.2rem;
+        .logo {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        /* Menú desplegable de estadísticas */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropbtn {
-            background-color: var(--green-dark);
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: var(--white);
-            min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
-            border-radius: 10px;
-            z-index: 2000;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .dropdown-content div {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--green-light);
-            font-size: 0.9rem;
-        }
         
-        .dropdown:hover .dropdown-content {
-            display: block;
+        .logo img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--brand-dark);
+            object-fit: cover;
         }
 
-        /* Contenedor del Mapa */
+        .logo-text h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1;
+        }
+
+        .logo-text span {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .location-select {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: #f9fafb;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            outline: none;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            cursor: pointer;
+        }
+
+        /* --- MAIN LAYOUT --- */
+        .main-content {
+            display: flex;
+            flex: 1;
+            position: relative;
+            height: calc(100vh - 60px);
+        }
+
         #map {
             flex-grow: 1;
-            width: 100%;
+            height: 100%;
             z-index: 1;
         }
 
-        /* Tarjeta de Avistamiento (Popup Leaflet) */
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 380px;
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+            z-index: 1500;
+            transition: transform 0.3s ease;
+        }
+
+        .tabs {
+            display: flex;
+            padding: 15px 15px 5px;
+            gap: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            border-radius: 20px;
+            border: none;
+            background: var(--white);
+            color: var(--text-gray);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #e2e8f0; /* Color gris suave activo */
+            color: var(--text-dark);
+        }
+
+        .badge {
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
+        .filter-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+        }
+
+        .pill {
+            padding: 5px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            background: var(--white);
+            font-size: 0.8rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+
+        .list-header {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--text-gray);
+            letter-spacing: 0.5px;
+            padding: 0 15px 10px;
+            text-transform: uppercase;
+        }
+
+        .sightings-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        .list-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .list-item:hover { background: #f9fafb; }
+
+        .list-item-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #e5e7eb;
+        }
+
+        .list-item-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .list-item-title { font-weight: 700; color: var(--text-dark); font-size: 0.95rem; }
+        .list-item-sci { font-style: italic; color: var(--text-gray); font-size: 0.8rem; }
+        .list-item-loc { font-size: 0.75rem; color: #9ca3af; margin-top: 2px; }
+
+        /* --- POPUP LEAFLET (Estilo Captura 1) --- */
         .leaflet-popup-content-wrapper {
-            border-radius: 15px;
+            padding: 0;
+            border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
 
         .leaflet-popup-content {
             margin: 0;
-            width: 280px !important;
+            width: 290px !important;
         }
 
-        .bird-card {
-            background: var(--white);
+        .leaflet-popup-close-button {
+            color: white !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            font-size: 1.2rem !important;
+            padding: 5px !important;
         }
 
-        .bird-image {
+        .popup-img {
             width: 100%;
-            height: 150px;
+            height: 160px;
             object-fit: cover;
-            background-color: var(--green-light);
+            display: block;
         }
 
-        .bird-info {
-            padding: 15px;
+        .popup-body {
+            padding: 15px 20px;
         }
 
-        .bird-name {
-            font-size: 1.2rem;
-            color: var(--green-dark);
-            font-weight: 700;
+        .popup-title {
+            font-size: 1.25rem;
+            color: var(--brand-dark);
+            font-weight: 800;
             margin-bottom: 2px;
+            line-height: 1.2;
         }
 
-        .sci-name {
+        .popup-sci {
             font-style: italic;
-            color: #757575;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            margin-bottom: 15px;
         }
 
-        .bird-detail {
-            font-size: 0.85rem;
-            margin-bottom: 5px;
+        .popup-detail {
             display: flex;
-            gap: 5px;
+            gap: 10px;
             align-items: flex-start;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            line-height: 1.3;
         }
 
-        /* Botones de acción */
-        .action-buttons {
+        .popup-detail i {
+            color: var(--brand-green);
+            margin-top: 3px;
+            font-size: 1rem;
+        }
+
+        /* Botones del Popup (Grid exacto) */
+        .popup-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
@@ -159,76 +297,93 @@
         }
 
         .btn {
+            border-radius: 8px;
+            padding: 10px 5px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-align: center;
+            text-decoration: none;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 5px;
-            padding: 8px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
             border: none;
-            text-align: center;
+            cursor: pointer;
         }
 
-        .btn-whatsapp { background-color: #25D366; }
-        .btn-maps { background-color: #4285F4; }
-        .btn-ebird { background-color: var(--green-dark); }
-        .btn-route { background-color: #ff9800; grid-column: span 2; }
+        .btn-wa { background-color: var(--btn-whatsapp); color: white; }
+        .btn-ebird { background-color: var(--btn-ebird-bg); color: var(--btn-ebird-text); }
+        .btn-maps { background-color: var(--btn-maps); color: white; grid-column: 1 / 2; }
+        .btn-route { background-color: var(--btn-route); color: white; grid-column: 1 / 3; }
 
-        /* Alertas flotantes */
-        #alert-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 400px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .alert-toast {
-            background-color: var(--green-dark);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        /* --- MOBILE RESPONSIVE --- */
+        .mobile-menu-btn { display: none; }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn { display: block; }
+            #sidebar {
+                position: absolute;
+                top: 0;
+                right: 0;
+                height: 100%;
+                transform: translateX(100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1><i class="fa-solid fa-crow"></i> Rarezas Chile</h1>
-        
-        <div class="dropdown">
-            <button class="dropbtn"><i class="fa-solid fa-users"></i> Ebirders (Simulado)</button>
-            <div class="dropdown-content">
-                <div><i class="fa-solid fa-location-dot" style="color: var(--green-primary)"></i> Araucanía: 124 activos</div>
-                <div><i class="fa-solid fa-location-dot" style="color: var(--green-primary)"></i> Metropolitana: 450 activos</div>
-                <div><i class="fa-solid fa-location-dot" style="color: var(--green-primary)"></i> Valparaíso: 210 activos</div>
-                <div><i class="fa-solid fa-location-dot" style="color: var(--green-primary)"></i> Los Ríos: 98 activos</div>
+        <div class="logo">
+            <!-- Icono por defecto mientras carga -->
+            <img src="https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=100&q=80" alt="Logo">
+            <div class="logo-text">
+                <h1>Avistar</h1>
+                <span>Aves de Chile</span>
             </div>
+        </div>
+        
+        <div class="header-actions">
+            <select class="location-select">
+                <option>Todo Chile</option>
+                <option>Araucanía</option>
+                <option>Los Lagos</option>
+            </select>
+            <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
         </div>
     </header>
 
-    <div id="map"></div>
-    <div id="alert-container"></div>
+    <div class="main-content">
+        <div id="map"></div>
+        
+        <aside id="sidebar">
+            <div class="tabs">
+                <button class="tab">Recientes</button>
+                <button class="tab active">Rarezas <span class="badge" id="rare-count">0</span></button>
+                <button class="tab">Mi ruta</button>
+            </div>
+            
+            <div class="filter-pills">
+                <button class="pill">Zorzal</button>
+                <button class="pill">Queltehue</button>
+                <button class="pill">Rayadito</button>
+                <button class="pill">Chucao</button>
+                <button class="pill">Cóndor</button>
+                <button class="pill">Flamenco chileno</button>
+                <button class="pill">Bandurria</button>
+            </div>
+
+            <div class="list-header">Avistamientos Recientes</div>
+            <div class="sightings-list" id="sightings-list">
+                <!-- Los elementos se inyectarán aquí mediante JS -->
+                <div style="padding: 20px; text-align: center; color: #9ca3af;">Buscando aves raras...</div>
+            </div>
+        </aside>
+    </div>
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -237,148 +392,151 @@
     <script>
         const EBIRD_API_KEY = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
         
-        // Inicializar Mapa centrado en la zona sur/centro de Chile
-        const map = L.map('map').setView([-38.7359, -72.5904], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        // 1. Inicializar Mapa (CartoDB para evitar bloqueo de OpenStreetMap)
+        const map = L.map('map', { zoomControl: false }).setView([-38.7359, -72.5904], 6);
+        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CartoDB'
         }).addTo(map);
 
         let routingControl = null;
         let userLocation = null;
+        let markers = {}; // Guardar referencias de marcadores
 
-        // Obtener ubicación del usuario para trazar la ruta GPS
+        // 2. Control del Menú Móvil
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // 3. Geolocalización
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(position => {
                 userLocation = L.latLng(position.coords.latitude, position.coords.longitude);
-                L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual");
             });
         }
 
-        // Función para obtener imagen desde Wikipedia
+        // 4. Buscar Imagen Wikipedia
         async function getWikipediaImage(scientificName) {
             try {
-                const query = encodeURIComponent(scientificName);
-                const res = await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${query}&prop=pageimages&format=json&pithumbsize=400&origin=*`);
+                const query = encodeURIComponent(scientificName.split(' ')[0]); // Buscar por género si falla
+                const res = await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(scientificName)}&prop=pageimages&format=json&pithumbsize=400&origin=*`);
                 const data = await res.json();
                 const pages = data.query.pages;
                 const pageId = Object.keys(pages)[0];
-                if (pages[pageId].thumbnail) {
+                if (pages[pageId] && pages[pageId].thumbnail) {
                     return pages[pageId].thumbnail.source;
                 }
-            } catch (e) {
-                console.error("Error buscando foto:", e);
-            }
-            return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; // Placeholder
+            } catch (e) {}
+            return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; // Fallback
         }
 
-        // Mostrar Alerta de especie rara
-        function showAlert(birdName) {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = 'alert-toast';
-            alert.innerHTML = `<i class="fa-solid fa-bell"></i> ¡Nueva rareza confirmada! Se ha reportado un ${birdName}.`;
-            container.appendChild(alert);
-            setTimeout(() => { alert.remove(); }, 6000);
-        }
-
-        // Trazar ruta
+        // 5. Trazar Ruta
         window.drawRoute = function(lat, lng) {
             if (!userLocation) {
-                alert("Debes permitir el acceso a tu ubicación GPS para trazar rutas.");
+                alert("Activa el GPS para trazar rutas.");
                 return;
             }
             if (routingControl) { map.removeControl(routingControl); }
             
             routingControl = L.Routing.control({
-                waypoints: [
-                    userLocation,
-                    L.latLng(lat, lng)
-                ],
-                routeWhileDragging: true,
+                waypoints: [userLocation, L.latLng(lat, lng)],
                 language: 'es',
-                lineOptions: { styles: [{color: '#2e7d32', weight: 4}] },
-                show: false // Oculta el panel grande de texto en móviles
+                lineOptions: { styles: [{color: '#f97316', weight: 5}] },
+                show: false
             }).addTo(map);
             map.closePopup();
+            
+            // Cerrar sidebar en móvil si está abierto
+            document.getElementById('sidebar').classList.remove('open');
         };
 
-        // Obtener rarezas de eBird
+        // 6. Centrar y Abrir Popup desde la lista
+        window.openMarker = function(id, lat, lng) {
+            map.setView([lat, lng], 12);
+            markers[id].openPopup();
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+
+        // 7. Cargar Datos de eBird
         async function fetchRareBirds() {
             try {
-                // sppLocale=es-CL garantiza los nombres en chileno
                 const url = `https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`;
-                const response = await fetch(url, {
-                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
-                });
+                const response = await fetch(url, { headers: { 'X-eBirdApiToken': EBIRD_API_KEY } });
                 const birds = await response.json();
                 
-                // Filtrar solo las validadas/confirmadas por humanos
                 const validBirds = birds.filter(b => b.obsValid === true);
                 
-                if(validBirds.length > 0) {
-                    showAlert(validBirds[0].comName); // Alerta del más reciente
-                }
+                document.getElementById('rare-count').textContent = validBirds.length;
+                const listContainer = document.getElementById('sightings-list');
+                listContainer.innerHTML = ''; // Limpiar estado de carga
 
-                for (const bird of validBirds) {
+                for (let i = 0; i < validBirds.length; i++) {
+                    const bird = validBirds[i];
                     const lat = bird.lat;
                     const lng = bird.lng;
-                    const comName = bird.comName;
+                    const comName = bird.comName || "Ave no identificada";
                     const sciName = bird.sciName;
                     const locName = bird.locName;
                     const obsName = bird.userDisplayName || "Observador anónimo";
                     const subId = bird.subId;
+                    const id = `marker_${i}`;
                     
-                    // Buscar foto
-                    const imageUrl = await getWikipediaImage(sciName);
+                    // Imagen asíncrona
+                    getWikipediaImage(sciName).then(imageUrl => {
+                        
+                        // 1. Generar HTML del Popup (Idéntico a Captura 1)
+                        const waText = encodeURIComponent(`¡Mira esta rareza! ${comName} en ${locName}. Lista eBird: https://ebird.org/checklist/${subId}`);
+                        const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                        
+                        const popupContent = `
+                            <div class="custom-popup">
+                                <img src="${imageUrl}" class="popup-img">
+                                <div class="popup-body">
+                                    <h2 class="popup-title">${comName}</h2>
+                                    <p class="popup-sci">${sciName}</p>
+                                    
+                                    <div class="popup-detail">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        <span>${locName} (${lat.toFixed(3)}, ${lng.toFixed(3)})</span>
+                                    </div>
+                                    <div class="popup-detail">
+                                        <i class="fa-solid fa-user"></i>
+                                        <span>Avistado por: ${obsName}</span>
+                                    </div>
 
-                    // Mensaje para WhatsApp
-                    const waText = encodeURIComponent(`¡Mira esta rareza! Se avistó un ${comName} (${sciName}) en ${locName}. Lista eBird: https://ebird.org/checklist/${subId}`);
-                    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-                    const ebirdLink = `https://ebird.org/checklist/${subId}`;
-
-                    // HTML de la Tarjeta
-                    const popupContent = `
-                        <div class="bird-card">
-                            <img src="${imageUrl}" alt="${comName}" class="bird-image">
-                            <div class="bird-info">
-                                <h3 class="bird-name">${comName}</h3>
-                                <p class="sci-name">${sciName}</p>
-                                
-                                <div class="bird-detail">
-                                    <i class="fa-solid fa-map-pin" style="color: var(--green-primary)"></i>
-                                    <span>${locName}</span>
-                                </div>
-                                <div class="bird-detail">
-                                    <i class="fa-solid fa-user" style="color: var(--green-primary)"></i>
-                                    <span>Avistado por: ${obsName}</span>
-                                </div>
-
-                                <div class="action-buttons">
-                                    <a href="${waText !== '' ? 'https://wa.me/?text=' + waText : '#'}" target="_blank" class="btn btn-whatsapp"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
-                                    <a href="${ebirdLink}" target="_blank" class="btn btn-ebird"><i class="fa-solid fa-list"></i> eBird</a>
-                                    <a href="${mapsLink}" target="_blank" class="btn btn-maps"><i class="fa-solid fa-location-arrow"></i> G. Maps</a>
-                                    <button onclick="drawRoute(${lat}, ${lng})" class="btn btn-route"><i class="fa-solid fa-route"></i> Trazar ruta aquí</button>
+                                    <div class="popup-actions">
+                                        <a href="https://wa.me/?text=${waText}" target="_blank" class="btn btn-wa"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
+                                        <a href="https://ebird.org/checklist/${subId}" target="_blank" class="btn btn-ebird"><i class="fa-solid fa-list"></i> eBird</a>
+                                        <a href="${mapsLink}" target="_blank" class="btn btn-maps"><i class="fa-solid fa-location-arrow"></i> G. Maps</a>
+                                        <button onclick="drawRoute(${lat}, ${lng})" class="btn btn-route"><i class="fa-solid fa-route"></i> Trazar ruta aquí</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
 
-                    // Crear el marcador verde personalizado
-                    const greenIcon = new L.Icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
+                        // 2. Agregar Marcador al mapa
+                        const marker = L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
+                        markers[id] = marker; // Guardar referencia
+
+                        // 3. Agregar elemento a la lista lateral (Idéntico a Captura 2)
+                        const listItem = document.createElement('div');
+                        listItem.className = 'list-item';
+                        listItem.onclick = () => openMarker(id, lat, lng);
+                        listItem.innerHTML = `
+                            <img src="${imageUrl}" class="list-item-img">
+                            <div class="list-item-info">
+                                <div class="list-item-title">${comName}</div>
+                                <div class="list-item-sci">${sciName}</div>
+                                <div class="list-item-loc">${locName.split(',')[0]}</div>
+                            </div>
+                        `;
+                        listContainer.appendChild(listItem);
                     });
-
-                    L.marker([lat, lng], {icon: greenIcon}).addTo(map)
-                     .bindPopup(popupContent, { minWidth: 280, maxWidth: 280 });
                 }
-
             } catch (error) {
-                console.error("Error obteniendo datos de eBird: ", error);
+                console.error("Error eBird: ", error);
+                document.getElementById('sightings-list').innerHTML = '<div style="padding: 20px; text-align:center;">Error cargando avistamientos.</div>';
             }
         }
 
