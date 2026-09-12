@@ -1,266 +1,1009 @@
+
+Index · HTML
 <!DOCTYPE html>
 <html lang="es-CL">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>eRadar Chile</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <style>
-        :root {
-            --primary: #143d29; /* Verde oscuro elegante */
-            --bg-panel: #f8f9fa; /* Gris muy claro, casi blanco */
-            --text-dark: #111;
-        }
-
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            overflow: hidden; background: #000;
-        }
-
-        #mapa { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
-        /* Botón flotante para ver todo Chile */
-        .fab-chile {
-            position: absolute; top: 20px; right: 20px; z-index: 999;
-            background: white; color: var(--primary);
-            width: 45px; height: 45px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            border: none; font-size: 20px; cursor: pointer; transition: 0.2s;
-        }
-        .fab-chile:active { transform: scale(0.9); }
-
-        /* --- PANEL INFERIOR (Bottom Sheet) --- */
-        #panel-inferior {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background: var(--bg-panel);
-            border-radius: 24px 24px 0 0;
-            padding: 15px 20px 35px; box-sizing: border-box;
-            box-shadow: 0 -5px 30px rgba(0,0,0,0.1);
-            z-index: 1000;
-            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        /* Clase para ocultar el panel parcialmente y dejar ver el mapa */
-        #panel-inferior.minimizado { transform: translateY(calc(100% - 65px)); }
-
-        .handle {
-            width: 45px; height: 5px; background: #d1d5db;
-            border-radius: 5px; margin: 0 auto 15px; cursor: pointer;
-        }
-
-        .panel-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; cursor: pointer;
-        }
-        .panel-header h2 { margin: 0; font-size: 22px; color: var(--primary); font-weight: 800; display: flex; align-items: center; gap: 8px;}
-        
-        /* Caja de Estado */
-        #estado {
-            background: var(--primary); color: white; padding: 16px;
-            border-radius: 12px; font-size: 15px; text-align: center;
-            font-weight: 600; margin-bottom: 15px; letter-spacing: 0.3px;
-        }
-
-        /* Tarjetas de Datos */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .tarjeta {
-            background: white; padding: 20px 15px; border-radius: 14px;
-            text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        }
-        .tarjeta-numero { font-size: 32px; font-weight: 900; color: var(--primary); margin: 0 0 5px 0; line-height: 1; }
-        .tarjeta-titulo { font-size: 12px; color: #6b7280; margin: 0; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;}
-
-        /* --- POPUP DEL MAPA (Tarjeta de Ave) --- */
-        .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-        .leaflet-popup-content { margin: 0; width: 260px !important; }
-        .tarjeta-popup img { width: 100%; height: 160px; object-fit: cover; }
-        .tarjeta-popup .info { padding: 15px; }
-        .tarjeta-popup h3 { margin: 0 0 2px; font-size: 17px; color: var(--primary); font-weight: 800;}
-        .tarjeta-popup i { font-size: 13px; color: #6b7280; display: block; margin-bottom: 10px; }
-        .tarjeta-popup p { margin: 4px 0; font-size: 13px; color: #374151; }
-        .btn-ebird { 
-            display: block; background: var(--primary); color: white !important; 
-            text-align: center; text-decoration: none; padding: 12px; 
-            font-weight: bold; margin-top: 12px; border-radius: 10px; font-size: 14px; transition: 0.2s;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Avistar · Registro de aves de Chile</title>
+<meta name="description" content="App de avistamiento de aves de Chile: mapa interactivo, rarezas, rutas GPS y estadísticas por región.">
+ 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+ 
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg: #FAFAF7;
+    --bg-panel: #F2F6EF;
+    --bg-card: #FFFFFF;
+    --line: #DDE7D8;
+    --green-950: #16261A;
+    --green-800: #294A31;
+    --green-700: #35633F;
+    --green-600: #46804F;
+    --green-500: #6FA377;
+    --green-300: #A9CBA9;
+    --green-100: #E4EFDF;
+    --rareza: #B5562E;
+    --rareza-bg: #FBEBE3;
+    --text: #223224;
+    --text-soft: #55665A;
+    --shadow: 0 10px 30px rgba(22,38,26,.12);
+    --radius-l: 20px;
+    --radius-m: 14px;
+    --radius-s: 9px;
+    --font-display: "Fraunces", serif;
+    --font-body: "Work Sans", sans-serif;
+    --sheet-peek: 108px;
+    --sheet-mid: 46vh;
+    --header-h: 60px;
+  }
+ 
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    overscroll-behavior: none;
+  }
+  button{ font-family: inherit; }
+  h1,h2,h3{ font-family: var(--font-display); margin:0; color: var(--green-950); }
+  p{ margin:0; }
+  a{ color: var(--green-700); }
+  ::selection{ background: var(--green-300); }
+ 
+  /* ============ APP SHELL ============ */
+  #app{ position: fixed; inset:0; display:flex; flex-direction:column; }
+ 
+  header.topbar{
+    height: var(--header-h);
+    flex: 0 0 auto;
+    display:flex; align-items:center; gap:10px;
+    padding: 0 12px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--line);
+    z-index: 500;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius: 10px;
+    background: linear-gradient(155deg, var(--green-600), var(--green-800));
+    display:flex; align-items:center; justify-content:center;
+    flex: 0 0 auto;
+  }
+  .brand .mark svg{ width:20px; height:20px; }
+  .brand h1{ font-size: 19px; font-weight: 600; letter-spacing: .2px; }
+  .brand span.tag{ display:block; font-size: 11px; color: var(--text-soft); font-family: var(--font-body); margin-top:-2px;}
+ 
+  select#regionSelect{
+    margin-left:auto;
+    appearance:none;
+    background: var(--green-100);
+    border: 1px solid var(--green-300);
+    color: var(--green-800);
+    font-weight:600;
+    font-size: 13px;
+    padding: 8px 30px 8px 12px;
+    border-radius: 999px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23294A31'/></svg>");
+    background-repeat:no-repeat;
+    background-position: right 12px center;
+    max-width: 46vw;
+  }
+ 
+  button.icon-btn{
+    border:none; background: var(--green-100); color: var(--green-800);
+    width:38px; height:38px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto; cursor:pointer;
+  }
+  button.icon-btn svg{ width:19px; height:19px; }
+  button.icon-btn.alert-on{ background: var(--rareza-bg); color: var(--rareza); }
+ 
+  /* ============ MAP ============ */
+  #mapWrap{ position:relative; flex:1 1 auto; min-height:0; }
+  #map{ position:absolute; inset:0; }
+  .leaflet-container{ background: #EAF1E6; font-family: var(--font-body); }
+ 
+  .fab-stack{
+    position:absolute; right:12px; bottom: calc(var(--sheet-peek) + 16px);
+    display:flex; flex-direction:column; gap:10px; z-index:410;
+    transition: bottom .25s ease;
+  }
+  .fab{
+    width:48px; height:48px; border-radius: 50%; border:none;
+    background: var(--bg-card); box-shadow: var(--shadow);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    color: var(--green-800);
+  }
+  .fab svg{ width:22px; height:22px; }
+  .fab.primary{ background: var(--green-700); color:#fff; }
+ 
+  .map-pill{
+    position:absolute; top:12px; left:12px; z-index:410;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(2px);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 12px 7px 8px; font-size:12.5px; font-weight:600; color: var(--green-800);
+    display:flex; align-items:center; gap:6px; box-shadow: var(--shadow);
+  }
+  .map-pill .dot{ width:8px; height:8px; border-radius:50%; background: var(--green-600); }
+ 
+  /* custom leaflet marker icons */
+  .pin{
+    width:30px; height:30px; border-radius: 50% 50% 50% 0;
+    background: var(--green-600); border: 2px solid #fff;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.3);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .pin.rare{ background: var(--rareza); }
+  .pin span{ transform: rotate(45deg); font-size:14px; }
+  .pin.me{ background:#2A6FD9; }
+ 
+  /* ============ BOTTOM SHEET ============ */
+  #sheet{
+    position:absolute; left:0; right:0; bottom:0;
+    background: var(--bg-panel);
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    box-shadow: 0 -8px 24px rgba(22,38,26,.15);
+    z-index: 420;
+    height: var(--sheet-peek);
+    transition: height .3s cubic-bezier(.2,.8,.3,1);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  #sheet.mid{ height: var(--sheet-mid); }
+  #sheet.full{ height: 84vh; }
+ 
+  .sheet-handle{
+    flex:0 0 auto; padding: 9px 0 4px; display:flex; justify-content:center; cursor: pointer;
+  }
+  .sheet-handle .bar{ width:38px; height:4px; border-radius:99px; background: var(--green-300); }
+ 
+  .sheet-tabs{
+    flex:0 0 auto;
+    display:flex; gap:4px; padding: 2px 12px 10px; overflow-x:auto;
+  }
+  .sheet-tab{
+    border:none; background:transparent; color: var(--text-soft);
+    font-weight:600; font-size:13px; padding: 7px 12px; border-radius:999px;
+    white-space:nowrap; cursor:pointer;
+  }
+  .sheet-tab.active{ background: var(--green-700); color:#fff; }
+  .sheet-tab .badge{
+    display:inline-block; margin-left:5px; background: var(--rareza); color:#fff;
+    font-size:10px; padding:1px 6px; border-radius:99px;
+  }
+ 
+  .sheet-body{ flex:1 1 auto; overflow-y:auto; padding: 0 14px 24px; -webkit-overflow-scrolling:touch; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+ 
+  /* ============ LIST CARDS ============ */
+  .sighting-row{
+    display:flex; gap:10px; align-items:center;
+    background: var(--bg-card); border:1px solid var(--line);
+    border-radius: var(--radius-m); padding:9px; margin-bottom:8px; cursor:pointer;
+  }
+  .sighting-row img{ width:52px; height:52px; border-radius:11px; object-fit:cover; flex:0 0 auto; background: var(--green-100); }
+  .sighting-row .meta{ min-width:0; flex:1; }
+  .sighting-row .meta .name{ font-weight:700; font-size:14.5px; color: var(--green-950); }
+  .sighting-row .meta .sci{ font-style:italic; font-size:12px; color:var(--text-soft); }
+  .sighting-row .meta .place{ font-size:12px; color:var(--text-soft); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sighting-row .rare-tag{
+    font-size:10.5px; font-weight:700; color: var(--rareza); background: var(--rareza-bg);
+    padding: 3px 7px; border-radius:999px; flex:0 0 auto; align-self:flex-start;
+  }
+ 
+  .section-title{ font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color: var(--green-700); margin: 14px 0 8px; }
+  .section-title:first-child{ margin-top: 12px; }
+  .hint{ font-size:12.5px; color: var(--text-soft); line-height:1.45; margin-bottom:10px; }
+ 
+  /* filters */
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 6px;}
+  .chip{
+    border:1px solid var(--green-300); background:#fff; color: var(--green-800);
+    font-size:12.5px; font-weight:600; padding:7px 12px; border-radius:999px; cursor:pointer;
+  }
+  .chip.on{ background: var(--green-700); border-color: var(--green-700); color:#fff; }
+ 
+  /* stats */
+  .stat-row{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .stat-row .label{ width:130px; flex:0 0 auto; font-size:12.5px; color: var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stat-row .bar-track{ flex:1; height:10px; background: var(--green-100); border-radius:99px; overflow:hidden; }
+  .stat-row .bar-fill{ height:100%; background: linear-gradient(90deg, var(--green-500), var(--green-700)); border-radius:99px; }
+  .stat-row .count{ width:48px; text-align:right; font-size:12.5px; font-weight:700; color: var(--green-800); flex:0 0 auto;}
+  .stat-total{
+    background: var(--green-100); border-radius: var(--radius-m); padding:12px 14px; margin-bottom:14px;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .stat-total .n{ font-family: var(--font-display); font-size:26px; color:var(--green-800); font-weight:700;}
+  .stat-total .l{ font-size:12px; color: var(--text-soft); }
+ 
+  /* route planner */
+  .waypoint{
+    display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line);
+    border-radius: var(--radius-s); padding:8px 10px; margin-bottom:7px;
+  }
+  .waypoint .num{
+    width:22px; height:22px; border-radius:50%; background: var(--green-700); color:#fff;
+    font-size:11.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .waypoint .wname{ flex:1; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .waypoint button{ border:none; background:transparent; color: var(--text-soft); cursor:pointer; padding:3px; }
+  .waypoint button svg{ width:16px; height:16px; display:block; }
+ 
+  .route-summary{
+    display:flex; gap:14px; background: var(--bg-card); border:1px solid var(--line);
+    border-radius: var(--radius-m); padding:10px 14px; margin: 10px 0;
+  }
+  .route-summary div b{ display:block; font-size:16px; color: var(--green-800); font-family: var(--font-display); }
+  .route-summary div span{ font-size:11px; color: var(--text-soft); }
+ 
+  .btn{
+    border:none; border-radius: 999px; padding: 11px 16px; font-weight:700; font-size:13.5px;
+    cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    width:100%;
+  }
+  .btn svg{ width:16px; height:16px; }
+  .btn-primary{ background: var(--green-700); color:#fff; }
+  .btn-outline{ background:#fff; border:1.5px solid var(--green-300); color: var(--green-800); }
+  .btn-ghost{ background: transparent; color: var(--text-soft); }
+  .btn-whatsapp{ background: #3FA24A; color:#fff; }
+  .btn-row{ display:flex; gap:8px; margin-top:10px; }
+  .btn-row .btn{ width:auto; flex:1; }
+ 
+  .empty{
+    text-align:center; padding: 26px 10px; color: var(--text-soft); font-size:13px;
+  }
+ 
+  /* ============ RARITY TOAST ============ */
+  #toastStack{
+    position:absolute; top: 12px; left:50%; transform:translateX(-50%);
+    z-index:600; display:flex; flex-direction:column; gap:8px; width: min(92vw, 380px);
+    pointer-events:none;
+  }
+  .toast{
+    background: var(--green-950); color:#fff; border-radius: var(--radius-m);
+    padding: 11px 14px; display:flex; gap:10px; align-items:center; box-shadow: var(--shadow);
+    animation: slideDown .3s ease;
+    pointer-events:auto;
+  }
+  .toast .ic{ width:30px;height:30px; border-radius:50%; background: var(--rareza); flex:0 0 auto; display:flex;align-items:center;justify-content:center;}
+  .toast .tx b{ display:block; font-size:13px; }
+  .toast .tx span{ font-size:11.5px; color: #C9D6C9; }
+  @keyframes slideDown{ from{ transform: translateY(-16px); opacity:0;} to{ transform:none; opacity:1;} }
+ 
+  /* ============ CARD MODAL (tap on point) ============ */
+  #cardOverlay{
+    position:fixed; inset:0; background: rgba(20,30,20,.45); z-index:900;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  #cardOverlay.show{ display:flex; }
+  #cardModal{
+    background: var(--bg-card); width:100%; max-width:460px;
+    border-radius: 22px 22px 0 0; max-height:88vh; overflow-y:auto;
+    animation: riseUp .28s cubic-bezier(.2,.8,.3,1);
+  }
+  @media (min-width: 760px){
+    #cardOverlay{ align-items:center; }
+    #cardModal{ border-radius:22px; margin-bottom:0; }
+  }
+  @keyframes riseUp{ from{ transform: translateY(30px); opacity:0;} to{ transform:none; opacity:1;} }
+  #cardModal .photo{ width:100%; height:190px; object-fit:cover; background: var(--green-100); display:block; }
+  #cardModal .close{
+    position:absolute; margin:12px; width:34px; height:34px; border-radius:50%;
+    background: rgba(0,0,0,.45); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  #cardModal .body{ padding: 16px 18px 20px; }
+  #cardModal .rare-flag{
+    display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700;
+    color: var(--rareza); background: var(--rareza-bg); padding:4px 10px; border-radius:999px; margin-bottom:9px;
+  }
+  #cardModal h2{ font-size:22px; }
+  #cardModal .sci{ font-style:italic; color: var(--text-soft); font-size:14px; margin-top:2px; }
+  #cardModal .infoGrid{ margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+  #cardModal .infoRow{ display:flex; gap:10px; align-items:flex-start; }
+  #cardModal .infoRow svg{ width:18px; height:18px; flex:0 0 auto; margin-top:1px; color: var(--green-600); }
+  #cardModal .infoRow .k{ font-size:11px; color: var(--text-soft); text-transform:uppercase; letter-spacing:.4px; }
+  #cardModal .infoRow .v{ font-size:14px; font-weight:600; color: var(--text); }
+  #cardModal .infoRow a.v{ text-decoration:none; color: var(--green-700); }
+ 
+  /* leaflet popup override so it matches palette (used minimally) */
+  .leaflet-popup-content-wrapper{ border-radius: 14px; }
+ 
+  /* scrollbars slim */
+  .sheet-body::-webkit-scrollbar, #cardModal::-webkit-scrollbar{ width:5px; }
+  .sheet-body::-webkit-scrollbar-thumb{ background: var(--green-300); border-radius:99px; }
+ 
+  @media (min-width: 860px){
+    :root{ --sheet-peek: 0px; }
+    #app{ flex-direction: column; }
+    #mapWrap{ display:flex; }
+    #map{ position:static; flex:1; height:100%; }
+    #sheet{
+      position:static; height:auto; width:380px; border-radius:0;
+      box-shadow:none; border-left: 1px solid var(--line);
+      transition:none;
+    }
+    #sheet.mid, #sheet.full{ height:auto; }
+    #mapWrap{ position:relative; }
+    #mapInner{ display:flex; height:100%; width:100%; }
+    .sheet-handle{ display:none; }
+    .fab-stack{ bottom:20px; }
+  }
+</style>
 </head>
 <body>
-
-    <div id="mapa"></div>
-
-    <button class="fab-chile" onclick="centrarChile()">🌎</button>
-
-    <div id="panel-inferior">
-        <div class="handle" onclick="togglePanel()"></div>
-        
-        <div class="panel-header" onclick="togglePanel()">
-            <h2>🦅 eRadar Chile</h2>
-        </div>
-
-        <div class="panel-contenido">
-            <div id="estado">👆 Toca una región para buscar rarezas.</div>
-
-            <div class="dashboard-grid">
-                <div class="tarjeta">
-                    <p class="tarjeta-numero" id="val-rareza">0</p>
-                    <p class="tarjeta-titulo">Rarezas</p>
-                </div>
-                <div class="tarjeta">
-                    <p class="tarjeta-numero" id="val-tiempo">3</p>
-                    <p class="tarjeta-titulo">Días</p>
-                </div>
-            </div>
-        </div>
+ 
+<div id="app">
+ 
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 15c3-6 8-9 15-8-1 2-2 3-4 3.5 1 .8 1.6 1.7 1.8 3-3-1-5.5-.5-7.8 1.3C7.7 15.8 6 16.6 4 15Z" fill="#fff"/><circle cx="17" cy="8.3" r=".9" fill="#294A31"/></svg>
+      </div>
+      <div>
+        <h1>Avistar</h1>
+        <span class="tag">Aves de Chile</span>
+      </div>
     </div>
-
-    <script>
-        // =========================================================================
-        // 🔑 CONFIGURACIÓN: PEGA TU API KEY AQUÍ ADENTRO DE LAS COMILLAS
-        // =========================================================================
-        const MI_API_KEY = "89f4bf7f-47ac-4e68-949f-de69c890bce7"; 
-
-        let mapa, capaRegiones;
-        let marcadores = [];
-        const CENTRO_CHILE = [-35.6, -71.5];
-        const ZOOM_INICIAL = window.innerWidth < 600 ? 4 : 5;
-
-        document.addEventListener("DOMContentLoaded", () => {
-            mapa = L.map('mapa', { zoomControl: false, tap: false }).setView(CENTRO_CHILE, ZOOM_INICIAL); 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mapa);
-            cargarRegiones();
-        });
-
-        function togglePanel() {
-            document.getElementById('panel-inferior').classList.toggle('minimizado');
-        }
-
-        function centrarChile() {
-            mapa.flyTo(CENTRO_CHILE, ZOOM_INICIAL, { duration: 1.2 });
-            if(capaRegiones) capaRegiones.setStyle({ color: '#2c3e50', weight: 1, fillOpacity: 0.05, fillColor: '#2c3e50' });
-            marcadores.forEach(m => mapa.removeLayer(m));
-            document.getElementById('estado').innerText = "👆 Toca una región para buscar rarezas.";
-            document.getElementById('val-rareza').innerText = "0";
-            document.getElementById('panel-inferior').classList.remove('minimizado');
-        }
-
-        async function cargarRegiones() {
-            try {
-                const res = await fetch('https://raw.githubusercontent.com/fcortes/Chile-GeoJSON/master/Regional.geojson');
-                const data = await res.json();
-                capaRegiones = L.geoJSON(data, {
-                    style: { color: '#2c3e50', weight: 1, fillOpacity: 0.05, fillColor: '#2c3e50' },
-                    onEachFeature: (feature, layer) => {
-                        layer.on('click', () => interactuar(feature, layer));
-                    }
-                }).addTo(mapa);
-            } catch (error) { console.error("Error al cargar mapa", error); }
-        }
-
-        function interactuar(feature, layer) {
-            if (MI_API_KEY === "TU_API_KEY_AQUI") {
-                alert("⚠️ Debes poner tu API Key en el código (Línea 121)");
-                return;
-            }
-            
-            // Oscurecer mapa y resaltar región
-            capaRegiones.setStyle({ color: '#000', weight: 0.5, fillOpacity: 0.85, fillColor: '#05110c' });
-            layer.setStyle({ color: '#27ae60', weight: 3, fillOpacity: 0 });
-            mapa.flyToBounds(layer.getBounds(), { padding: [20, 20], duration: 1 });
-
-            // Minimizar panel para ver el mapa
-            document.getElementById('panel-inferior').classList.add('minimizado');
-
-            const nombre = feature.properties.Region || feature.properties.NOM_REG;
-            const codigo = obtenerCodigoEbird(nombre);
-            
-            if (codigo) {
-                document.getElementById('estado').innerText = `Rastreando ${nombre}...`;
-                buscarAves(codigo);
-            }
-        }
-
-        async function buscarAves(codigo) {
-            // back=3 significa que busca en los últimos 3 días (como en tu captura)
-            const url = `https://api.ebird.org/v2/data/obs/${codigo}/recent/notable?detail=full&sppLocale=es-CL&back=3`;
-            try {
-                const res = await fetch(url, { headers: { 'X-eBirdApiToken': MI_API_KEY } });
-                if (!res.ok) throw new Error("API Key incorrecta o error de conexión");
-                const aves = await res.json();
-                
-                document.getElementById('estado').innerHTML = `Se detectaron ${aves.length} rarezas en los últimos 3 días.`;
-                document.getElementById('val-rareza').innerText = aves.length;
-                dibujarPuntosMinimalistas(aves);
-            } catch (e) {
-                document.getElementById('estado').innerText = `Error: ${e.message}`;
-            }
-        }
-
-        function dibujarPuntosMinimalistas(aves) {
-            marcadores.forEach(m => mapa.removeLayer(m));
-            marcadores = [];
-
-            aves.forEach(ave => {
-                if(ave.lat && ave.lng) {
-                    // PUNTOS MINIMALISTAS (Círculos pequeños en vez de pines grandes)
-                    const marcador = L.circleMarker([ave.lat, ave.lng], {
-                        radius: 6,           // Tamaño del punto
-                        fillColor: "#e74c3c", // Color rojo vibrante
-                        color: "#ffffff",     // Borde blanco
-                        weight: 2,            // Grosor del borde
-                        opacity: 1,
-                        fillOpacity: 0.9
-                    }).addTo(mapa);
-                    
-                    marcador.on('click', async (e) => {
-                        const pop = L.popup().setLatLng(e.latlng).setContent('<div style="padding:15px; text-align:center; color:#143d29; font-weight:bold;">Analizando especie...</div>').openOn(mapa);
-                        
-                        const fotoUrl = await buscarFoto(ave.sciName);
-                        const fecha = ave.obsDt ? ave.obsDt.split(' ')[0] : '';
-                        
-                        const html = `
-                            <div class="tarjeta-popup">
-                                <img src="${fotoUrl}">
-                                <div class="info">
-                                    <h3>${ave.comName}</h3>
-                                    <i>${ave.sciName}</i>
-                                    <p>📍 ${ave.locName}</p>
-                                    <p>🕒 ${fecha}</p>
-                                    <p>👤 ${ave.userDisplayName || 'Anónimo'}</p>
-                                    <a href="https://ebird.org/checklist/${ave.subId}" target="_blank" class="btn-ebird">Ver lista en eBird</a>
-                                </div>
-                            </div>
-                        `;
-                        pop.setContent(html);
-                    });
-                    marcadores.push(marcador);
-                }
-            });
-        }
-
-        async function buscarFoto(nombre) {
-            try {
-                let res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(nombre)}`);
-                let data = await res.json();
-                if (data.thumbnail && data.thumbnail.source) return data.thumbnail.source;
-                
-                res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(nombre)}`);
-                data = await res.json();
-                if (data.thumbnail && data.thumbnail.source) return data.thumbnail.source;
-            } catch (e) {}
-            return 'https://images.unsplash.com/photo-1552728089-57156f5222cb?q=80&w=400&auto=format&fit=crop';
-        }
-
-        function obtenerCodigoEbird(n) {
-            n = (n || '').toLowerCase();
-            const mapa = { "arica": "CL-AP", "tarapac": "CL-TA", "antofagasta": "CL-AN", "atacama": "CL-AT", "coquimbo": "CL-CO", "valpara": "CL-VS", "metropolitana": "CL-RM", "santiago": "CL-RM", "higgins": "CL-LI", "libertador": "CL-LI", "maule": "CL-ML", "nuble": "CL-NB", "ñuble": "CL-NB", "bio": "CL-BI", "bío": "CL-BI", "araucan": "CL-AR", "ríos": "CL-LR", "rios": "CL-LR", "lagos": "CL-LL", "aysen": "CL-AI", "aisén": "CL-AI", "magallanes": "CL-MA", "antártica": "CL-MA" };
-            for (let key in mapa) if (n.includes(key)) return mapa[key];
-            return null;
-        }
-    </script>
+    <select id="regionSelect" aria-label="Filtrar por región"></select>
+    <button class="icon-btn" id="alertBtn" title="Activar alertas de rarezas">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a5 5 0 0 0-5 5v3.5c0 .7-.3 1.4-.8 1.9L5 15h14l-1.2-1.6a2.6 2.6 0 0 1-.8-1.9V8a5 5 0 0 0-5-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+  </header>
+ 
+  <div id="mapWrap">
+    <div id="mapInner">
+      <div id="map" role="application" aria-label="Mapa de avistamientos"></div>
+ 
+      <div id="toastStack"></div>
+ 
+      <div class="map-pill" id="regionPill"><span class="dot"></span> Todo Chile</div>
+ 
+      <div class="fab-stack">
+        <button class="fab" id="locateBtn" title="Ir a mi ubicación">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="fab primary" id="addSightingBtn" title="Registrar avistamiento">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+ 
+    <section id="sheet" class="mid">
+      <div class="sheet-handle" id="sheetHandle"><div class="bar"></div></div>
+ 
+      <nav class="sheet-tabs">
+        <button class="sheet-tab active" data-panel="recientes">Recientes</button>
+        <button class="sheet-tab" data-panel="rarezas">Rarezas<span class="badge" id="rareBadge">0</span></button>
+        <button class="sheet-tab" data-panel="ruta">Mi ruta</button>
+        <button class="sheet-tab" data-panel="stats">Comunidad</button>
+      </nav>
+ 
+      <div class="sheet-body">
+ 
+        <!-- RECIENTES -->
+        <div class="panel active" data-panel="recientes">
+          <div class="chip-row" id="speciesFilterChips"></div>
+          <div class="section-title">Avistamientos recientes</div>
+          <div id="recentList"></div>
+        </div>
+ 
+        <!-- RAREZAS -->
+        <div class="panel" data-panel="rarezas">
+          <p class="hint">Especies raras reportadas por observadores, aún <b>pendientes de validación</b> por el Comité de Rarezas (no incluye reportes sin evidencia ni respaldo de una persona).</p>
+          <div id="rareList"></div>
+        </div>
+ 
+        <!-- RUTA -->
+        <div class="panel" data-panel="ruta">
+          <p class="hint">Arma una ruta de avistamiento tocando puntos en el mapa o agregando avistamientos de la lista, en el orden que quieras visitar.</p>
+          <div id="routeEmpty" class="empty">Aún no agregas puntos.<br>Toca el mapa o un avistamiento y elige "Agregar a mi ruta".</div>
+          <div id="waypointList"></div>
+          <div class="route-summary" id="routeSummary" style="display:none;">
+            <div><b id="routeDist">0 km</b><span>distancia total</span></div>
+            <div><b id="routeTime">0 min</b><span>caminando aprox.</span></div>
+            <div><b id="routeCount">0</b><span>puntos</span></div>
+          </div>
+          <div class="btn-row" id="routeActions" style="display:none;">
+            <button class="btn btn-outline" id="clearRouteBtn">Vaciar</button>
+            <button class="btn btn-primary" id="navBtn">Iniciar navegación GPS</button>
+          </div>
+          <div id="navStatus" style="display:none; margin-top:10px;"></div>
+        </div>
+ 
+        <!-- STATS -->
+        <div class="panel" data-panel="stats">
+          <div class="stat-total">
+            <div><span class="l">Observadores activos ahora</span><span class="n" id="totalUsers">–</span></div>
+            <span class="l">Chile</span>
+          </div>
+          <div class="section-title">Observadores por región</div>
+          <div id="statsList"></div>
+        </div>
+ 
+      </div>
+    </section>
+  </div>
+</div>
+ 
+<!-- TARJETA DE AVISTAMIENTO -->
+<div id="cardOverlay">
+  <div id="cardModal">
+    <button class="close" id="closeCard">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <img class="photo" id="cardPhoto" alt="" onerror="onImgError(this)">
+    <div class="body">
+      <span class="rare-flag" id="cardRareFlag" style="display:none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill="currentColor"/></svg>
+        Rareza · pendiente CERC
+      </span>
+      <h2 id="cardName"></h2>
+      <div class="sci" id="cardSci"></div>
+ 
+      <div class="infoGrid">
+        <div class="infoRow">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="9.5" r="2.4" stroke="currentColor" stroke-width="1.6"/></svg>
+          <div><div class="k">Lugar de avistamiento</div><div class="v" id="cardPlace"></div></div>
+        </div>
+        <div class="infoRow">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <div><div class="k">Observado por</div><div class="v" id="cardObserver"></div></div>
+        </div>
+        <div class="infoRow">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <div><div class="k">Fecha</div><div class="v" id="cardDate"></div></div>
+        </div>
+        <div class="infoRow">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <div><div class="k">Lista de eBird</div><a class="v" id="cardEbird" href="#" target="_blank" rel="noopener">Ver lista completa →</a></div>
+        </div>
+      </div>
+ 
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-outline" id="cardAddRoute">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          A mi ruta
+        </button>
+        <button class="btn btn-outline" id="cardOpenMaps">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21Z" stroke="currentColor" stroke-width="1.8"/></svg>
+          Maps
+        </button>
+      </div>
+      <button class="btn btn-whatsapp" id="cardWhatsapp" style="margin-top:8px;">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11 11 0 0 0 2.1 17.3L1 23l5.8-1.5A11 11 0 1 0 20.5 3.5Zm-8.5 17a9 9 0 0 1-4.6-1.3l-.3-.2-3.4.9.9-3.3-.2-.3A9 9 0 1 1 12 20.5Zm5-6.7c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.3-.4.1-.2 0-.4 0-.5C10.8 8.9 10.3 7.7 10 7c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 2 3 4.7 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.2-.1-.2-.3-.2-.6-.4Z"/></svg>
+        Enviar registro por WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+"use strict";
+ 
+/* =========================================================================
+   DATOS DE EJEMPLO
+   Todo lo de aquí abajo es mock data para que la interfaz funcione de
+   inmediato. Al subir esto a GitHub, lo natural es reemplazar SIGHTINGS,
+   RARITIES y USERS_BY_REGION por datos reales (API de eBird, tu backend, etc).
+   ========================================================================= */
+ 
+const REGIONS = [
+  "Arica y Parinacota","Tarapacá","Antofagasta","Atacama","Coquimbo",
+  "Valparaíso","Metropolitana","O'Higgins","Maule","Ñuble","Biobío",
+  "La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"
+];
+ 
+// nombres tal como se usan popularmente en Chile
+// Fotos: Wikimedia Commons (licencia libre), servidas vía Special:FilePath.
+// Si un archivo llegara a cambiar de nombre en Commons, el atributo onerror
+// de cada <img> cae automáticamente a una silueta de respaldo (ver FALLBACK_IMG).
+const WM = (filename) => `https://commons.wikimedia.org/wiki/Special:FilePath/${filename}?width=700`;
+ 
+const SIGHTINGS = [
+  { id:1, especie:"Zorzal", cientifico:"Turdus falcklandii", region:"Metropolitana", lugar:"Parque Bicentenario, Vitacura", lat:-33.3990, lng:-70.5920, observador:"Pancho Muñoz", fecha:"2026-09-10", ebird:"S198234501", img:WM("Austral%20Thrush%20-%20Turdus%20falcklandii%20magellanicus.jpg"), rareza:false },
+  { id:2, especie:"Queltehue", cientifico:"Vanellus chilensis", region:"Metropolitana", lugar:"Humedal Batuco", lat:-33.1690, lng:-70.7440, observador:"Camila Ríos", fecha:"2026-09-11", ebird:"S198234502", img:WM("Vanellus%20Chilensis%28Hernan%20Fernandez%29.JPG"), rareza:false },
+  { id:3, especie:"Rayadito", cientifico:"Aphrastura spinicauda", region:"Los Ríos", lugar:"Parque Saval, Valdivia", lat:-39.8060, lng:-73.2360, observador:"Ignacio Paredes", fecha:"2026-09-09", ebird:"S198234503", img:WM("Aphrastura%20spinicauda%20%28Thorn-tailed%20Rayodito%29.jpg"), rareza:false },
+  { id:4, especie:"Chucao", cientifico:"Scelorchilus rubecula", region:"Los Lagos", lugar:"PN Alerce Andino", lat:-41.4400, lng:-72.5600, observador:"Valentina Soto", fecha:"2026-09-08", ebird:"S198234504", img:WM("Scelorchilus%20rubecula%2C%20Chile.jpg"), rareza:false },
+  { id:5, especie:"Cóndor", cientifico:"Vultur gryphus", region:"O'Higgins", lugar:"Cajón del Maipo, sector Yeso", lat:-33.7180, lng:-70.0900, observador:"Rodrigo Fuentes", fecha:"2026-09-11", ebird:"S198234505", img:WM("Andean%20condor%20%28Vultur%20gryphus%29%20male%20in%20flight%20Torres%20del%20Paine.jpg"), rareza:false },
+  { id:6, especie:"Flamenco chileno", cientifico:"Phoenicopterus chilensis", region:"Antofagasta", lugar:"Salar de Atacama", lat:-23.5000, lng:-68.2500, observador:"Daniela Vergara", fecha:"2026-09-07", ebird:"S198234506", img:WM("Chilean%20Flamingo%20%28Phoenicopterus%20chilensis%29%20-%20Torres%20del%20Paine%20National%20Park%2002.jpg"), rareza:false },
+  { id:7, especie:"Bandurria", cientifico:"Theristicus melanopis", region:"La Araucanía", lugar:"Lago Villarrica, costanera", lat:-39.2827, lng:-72.2233, observador:"Matías Herrera", fecha:"2026-09-10", ebird:"S198234507", img:WM("Bandurria%20o%20Pato%20patag%C3%B3nico.jpg"), rareza:false },
+  { id:8, especie:"Cisne de cuello negro", cientifico:"Cygnus melancoryphus", region:"Los Ríos", lugar:"Santuario Río Cruces", lat:-39.7710, lng:-73.2320, observador:"Fernanda Cárdenas", fecha:"2026-09-06", ebird:"S198234508", img:WM("Cisne%20de%20cuello%20negro%20-%20A740080.jpg"), rareza:false },
+  { id:9, especie:"Picaflor gigante", cientifico:"Patagona gigas", region:"Valparaíso", lugar:"Cerro La Campana", lat:-32.9560, lng:-71.0790, observador:"Tomás Lagos", fecha:"2026-09-05", ebird:"S198234509", img:WM("Colibr%C3%AD%20o%20picaflor%20gigante.jpg"), rareza:false },
+  { id:10, especie:"Tiuque", cientifico:"Milvago chimango", region:"Ñuble", lugar:"Salto del Laja", lat:-37.2760, lng:-72.3350, observador:"Josefa Alarcón", fecha:"2026-09-11", ebird:"S198234510", img:WM("Chimango%20Caracara%20Torres%20Del%20Paine%20National%20Park%20Chile.jpg"), rareza:false },
+  { id:11, especie:"Pilpilén", cientifico:"Haematopus palliatus", region:"Coquimbo", lugar:"Punta de Choros", lat:-29.2500, lng:-71.4500, observador:"Cristóbal Vidal", fecha:"2026-09-04", ebird:"S198234511", img:WM("American%20oystercatcher%20%28Haematopus%20palliatus%29%20Chiloe.jpg"), rareza:false },
+  { id:12, especie:"Cachaña", cientifico:"Enicognathus ferrugineus", region:"Aysén", lugar:"Reserva Coyhaique", lat:-45.5560, lng:-72.0740, observador:"Antonia Bravo", fecha:"2026-09-03", ebird:"S198234512", img:WM("Enicognathus%20ferrugineus%20-Torres%20del%20Paine%20National%20Park-%20Chile-8.jpg"), rareza:false },
+];
+ 
+// Rarezas: reportes con evidencia y observador real, pendientes de validar por el Comité de Rarezas (CERC).
+// No se incluyen reportes sin foto/observador identificado.
+const RARITIES = [
+  { id:101, especie:"Playero pectoral", cientifico:"Calidris melanotos", region:"Valparaíso", lugar:"Humedal de Mantagua", lat:-32.8300, lng:-71.5100, observador:"Sergio Núñez", fecha:"2026-09-11", ebird:"S198299001", img:WM("Calidris%20melanotos%20-Cape%20May%2C%20New%20Jersey%2C%20USA-8.jpg"), rareza:true, evidencia:true },
+  { id:102, especie:"Fragata magnífica", cientifico:"Fregata magnificens", region:"Atacama", lugar:"Bahía de Caldera", lat:-27.0670, lng:-70.8240, observador:"Marcela Torres", fecha:"2026-09-10", ebird:"S198299002", img:WM("Fregata%20magnificens1.jpg"), rareza:true, evidencia:true },
+  { id:103, especie:"Gaviota de Franklin", cientifico:"Leucophaeus pipixcan", region:"Biobío", lugar:"Desembocadura Río Itata", lat:-36.3900, lng:-72.7000, observador:"Felipe Contreras", fecha:"2026-09-09", ebird:"S198299003", img:WM("Leucophaeus%20pipixcan%20Tule%20Lake%20California%202.jpg"), rareza:true, evidencia:true },
+  { id:104, especie:"Águila pescadora", cientifico:"Pandion haliaetus", region:"Los Lagos", lugar:"Estuario de Maullín", lat:-41.6100, lng:-73.5900, observador:"Bárbara Osses", fecha:"2026-09-08", ebird:"S198299004", img:WM("Pandion%20haliaetus%20-fish%20-Texas-8.jpg"), rareza:true, evidencia:true },
+  { id:105, especie:"Rascón limícola", cientifico:"Rallus limicola", region:"Metropolitana", lugar:"Humedal El Yali", lat:-33.7580, lng:-71.4180, observador:"Nicolás Espinoza", fecha:"2026-09-07", ebird:"S198299005", img:WM("Rallus%20limicola.jpg"), rareza:true, evidencia:true },
+];
+ 
+// Usuarios activos por región (solo cantidades, mock)
+const USERS_BY_REGION = {
+  "Arica y Parinacota": 34, "Tarapacá": 41, "Antofagasta": 88, "Atacama": 52,
+  "Coquimbo": 97, "Valparaíso": 214, "Metropolitana": 486, "O'Higgins": 76,
+  "Maule": 68, "Ñuble": 45, "Biobío": 152, "La Araucanía": 119,
+  "Los Ríos": 83, "Los Lagos": 128, "Aysén": 29, "Magallanes": 37
+};
+ 
+const ALL_SIGHTINGS = SIGHTINGS.concat(RARITIES);
+ 
+// Silueta de respaldo (no depende de red) para cuando una foto de Wikimedia no carga
+const FALLBACK_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+     <rect width="400" height="260" fill="#E4EFDF"/>
+     <path d="M120 175c20-45 60-70 115-63-8 13-18 20-32 23 9 7 15 15 17 26-24-7-44-3-62 11-16 12-31 15-38 3Z" fill="#A9CBA9"/>
+     <circle cx="203" cy="119" r="4" fill="#294A31"/>
+     <text x="200" y="225" font-family="sans-serif" font-size="13" fill="#55665A" text-anchor="middle">Foto no disponible</text>
+   </svg>`
+);
+function onImgError(imgEl){ imgEl.onerror = null; imgEl.src = FALLBACK_IMG; }
+ 
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+const state = {
+  region: "todas",
+  speciesFilter: null,
+  route: [],          // array de sighting objects
+  routeLine: null,
+  gpsWatchId: null,
+  meMarker: null,
+  markers: {},         // id -> leaflet marker
+  alertsOn: false,
+  rarityPoolIndex: 0,
+};
+ 
+/* =========================================================================
+   UTILIDADES
+   ========================================================================= */
+function haversine(a, b){
+  const R = 6371;
+  const dLat = (b.lat-a.lat) * Math.PI/180;
+  const dLng = (b.lng-a.lng) * Math.PI/180;
+  const lat1 = a.lat*Math.PI/180, lat2 = b.lat*Math.PI/180;
+  const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtKm(km){ return km < 1 ? Math.round(km*1000)+" m" : km.toFixed(1)+" km"; }
+function fmtDate(iso){
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString("es-CL", { day:"numeric", month:"short" });
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+ 
+/* =========================================================================
+   MAPA
+   ========================================================================= */
+const map = L.map('map', { zoomControl:false, attributionControl:true }).setView([-38.5, -71.5], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+L.control.zoom({ position:'bottomleft' }).addTo(map);
+ 
+function makeIcon(kind){
+  const cls = kind === 'rare' ? 'pin rare' : (kind === 'me' ? 'pin me' : 'pin');
+  return L.divIcon({
+    className:'', html:`<div class="${cls}"><span>${kind==='rare' ? '★' : (kind==='me' ? '●' : '')}</span></div>`,
+    iconSize:[30,30], iconAnchor:[15,28]
+  });
+}
+ 
+function renderMarkers(){
+  Object.values(state.markers).forEach(m => map.removeLayer(m));
+  state.markers = {};
+  const list = getFilteredSightings();
+  list.forEach(s => {
+    const marker = L.marker([s.lat, s.lng], { icon: makeIcon(s.rareza ? 'rare' : 'normal') }).addTo(map);
+    marker.on('click', () => openCard(s));
+    marker.on('contextmenu', (e) => { e.originalEvent.preventDefault(); addToRoute(s); });
+    state.markers[s.id] = marker;
+  });
+}
+ 
+function getFilteredSightings(){
+  return ALL_SIGHTINGS.filter(s => {
+    if (state.region !== 'todas' && s.region !== state.region) return false;
+    if (state.speciesFilter && s.especie !== state.speciesFilter) return false;
+    return true;
+  });
+}
+ 
+// click en el mapa (fuera de un marker) agrega un punto manual a la ruta
+map.on('click', (e) => {
+  const custom = {
+    id: 'wp-'+Date.now(),
+    especie: 'Punto de ruta',
+    cientifico: '',
+    lugar: `Lat ${e.latlng.lat.toFixed(4)}, Lng ${e.latlng.lng.toFixed(4)}`,
+    lat: e.latlng.lat, lng: e.latlng.lng,
+    custom: true
+  };
+  addToRoute(custom);
+});
+ 
+/* =========================================================================
+   TARJETA (modal)
+   ========================================================================= */
+const cardOverlay = document.getElementById('cardOverlay');
+let cardCurrent = null;
+ 
+function openCard(s){
+  cardCurrent = s;
+  document.getElementById('cardPhoto').src = s.img || 'https://picsum.photos/seed/ave/500/320';
+  document.getElementById('cardName').textContent = s.especie;
+  document.getElementById('cardSci').textContent = s.cientifico || '';
+  document.getElementById('cardPlace').textContent = s.lugar + ' · ' + s.region;
+  document.getElementById('cardObserver').textContent = s.observador || '—';
+  document.getElementById('cardDate').textContent = s.fecha ? fmtDate(s.fecha) : '—';
+  const ebirdLink = document.getElementById('cardEbird');
+  ebirdLink.href = s.ebird ? `https://ebird.org/checklist/${s.ebird}` : '#';
+  document.getElementById('cardRareFlag').style.display = s.rareza ? 'inline-flex' : 'none';
+  cardOverlay.classList.add('show');
+  map.panTo([s.lat, s.lng]);
+}
+document.getElementById('closeCard').addEventListener('click', () => cardOverlay.classList.remove('show'));
+cardOverlay.addEventListener('click', (e) => { if (e.target === cardOverlay) cardOverlay.classList.remove('show'); });
+ 
+document.getElementById('cardAddRoute').addEventListener('click', () => {
+  if (cardCurrent) addToRoute(cardCurrent);
+  cardOverlay.classList.remove('show');
+});
+document.getElementById('cardOpenMaps').addEventListener('click', () => {
+  if (!cardCurrent) return;
+  window.open(`https://www.google.com/maps?q=${cardCurrent.lat},${cardCurrent.lng}`, '_blank');
+});
+document.getElementById('cardWhatsapp').addEventListener('click', () => {
+  if (!cardCurrent) return;
+  shareWhatsapp(cardCurrent);
+});
+ 
+function shareWhatsapp(s){
+  const mapsUrl = `https://www.google.com/maps?q=${s.lat},${s.lng}`;
+  const lines = [
+    `🐦 Registro de avistamiento — Avistar`,
+    `Especie: ${s.especie}${s.cientifico ? ' ('+s.cientifico+')' : ''}`,
+    `Lugar: ${s.lugar}, ${s.region}`,
+    s.observador ? `Observado por: ${s.observador}` : null,
+    s.fecha ? `Fecha: ${fmtDate(s.fecha)}` : null,
+    s.ebird ? `Lista eBird: https://ebird.org/checklist/${s.ebird}` : null,
+    `Ubicación: ${mapsUrl}`
+  ].filter(Boolean).join('\n');
+  window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank');
+}
+ 
+/* =========================================================================
+   SHEET (panel desplegable inferior) + TABS
+   ========================================================================= */
+const sheet = document.getElementById('sheet');
+const sheetHandle = document.getElementById('sheetHandle');
+let sheetState = 'mid'; // peek | mid | full
+ 
+function setSheet(st){
+  sheetState = st;
+  sheet.classList.remove('mid','full');
+  if (st === 'mid') sheet.classList.add('mid');
+  if (st === 'full') sheet.classList.add('full');
+}
+sheetHandle.addEventListener('click', () => {
+  setSheet(sheetState === 'full' ? 'mid' : (sheetState === 'mid' ? 'peek' : 'mid'));
+});
+ 
+document.querySelectorAll('.sheet-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const key = tab.dataset.panel;
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.dataset.panel === key));
+    if (sheetState === 'peek') setSheet('mid');
+  });
+});
+ 
+/* =========================================================================
+   REGIÓN + FILTROS
+   ========================================================================= */
+const regionSelect = document.getElementById('regionSelect');
+regionSelect.innerHTML = `<option value="todas">Todo Chile</option>` +
+  REGIONS.map(r => `<option value="${r}">${r}</option>`).join('');
+regionSelect.addEventListener('change', () => {
+  state.region = regionSelect.value;
+  document.getElementById('regionPill').innerHTML = `<span class="dot"></span> ${state.region === 'todas' ? 'Todo Chile' : state.region}`;
+  renderMarkers();
+  renderRecentList();
+  renderStats();
+});
+ 
+function renderSpeciesChips(){
+  const especies = [...new Set(SIGHTINGS.map(s => s.especie))];
+  const wrap = document.getElementById('speciesFilterChips');
+  wrap.innerHTML = especies.map(e =>
+    `<button class="chip ${state.speciesFilter===e?'on':''}" data-especie="${escapeHtml(e)}">${escapeHtml(e)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const val = chip.dataset.especie;
+      state.speciesFilter = state.speciesFilter === val ? null : val;
+      renderSpeciesChips();
+      renderMarkers();
+      renderRecentList();
+    });
+  });
+}
+ 
+/* =========================================================================
+   LISTAS: RECIENTES / RAREZAS
+   ========================================================================= */
+function sightingRowHtml(s){
+  return `
+    <div class="sighting-row" data-id="${s.id}">
+      <img src="${s.img}" alt="${escapeHtml(s.especie)}" onerror="onImgError(this)">
+      <div class="meta">
+        <div class="name">${escapeHtml(s.especie)}</div>
+        <div class="sci">${escapeHtml(s.cientifico||'')}</div>
+        <div class="place">${escapeHtml(s.lugar)} · ${escapeHtml(s.region)}</div>
+      </div>
+      ${s.rareza ? '<span class="rare-tag">Rareza</span>' : ''}
+    </div>`;
+}
+ 
+function renderRecentList(){
+  const list = getFilteredSightings().filter(s => !s.rareza);
+  const el = document.getElementById('recentList');
+  el.innerHTML = list.length ? list.map(sightingRowHtml).join('') :
+    '<div class="empty">No hay avistamientos para este filtro todavía.</div>';
+  el.querySelectorAll('.sighting-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const s = ALL_SIGHTINGS.find(x => x.id == row.dataset.id);
+      if (s) openCard(s);
+    });
+  });
+}
+ 
+function renderRareList(){
+  const list = state.region === 'todas' ? RARITIES : RARITIES.filter(r => r.region === state.region);
+  const el = document.getElementById('rareList');
+  el.innerHTML = list.length ? list.map(sightingRowHtml).join('') :
+    '<div class="empty">Sin rarezas pendientes en esta región 🎉</div>';
+  el.querySelectorAll('.sighting-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const s = ALL_SIGHTINGS.find(x => x.id == row.dataset.id);
+      if (s) openCard(s);
+    });
+  });
+  document.getElementById('rareBadge').textContent = RARITIES.length;
+}
+ 
+/* =========================================================================
+   ESTADÍSTICAS DE COMUNIDAD
+   ========================================================================= */
+function renderStats(){
+  const total = Object.values(USERS_BY_REGION).reduce((a,b)=>a+b,0);
+  document.getElementById('totalUsers').textContent = total.toLocaleString('es-CL');
+  const max = Math.max(...Object.values(USERS_BY_REGION));
+  const el = document.getElementById('statsList');
+  const entries = state.region === 'todas'
+    ? Object.entries(USERS_BY_REGION)
+    : Object.entries(USERS_BY_REGION).filter(([r]) => r === state.region);
+ 
+  el.innerHTML = entries
+    .sort((a,b) => b[1]-a[1])
+    .map(([region, count]) => `
+      <div class="stat-row">
+        <div class="label">${escapeHtml(region)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(count/max*100).toFixed(0)}%"></div></div>
+        <div class="count">${count}</div>
+      </div>`).join('');
+}
+ 
+/* =========================================================================
+   RUTA DE AVISTAMIENTOS + GPS
+   ========================================================================= */
+function addToRoute(s){
+  if (state.route.find(r => r.id === s.id)) return;
+  state.route.push(s);
+  renderRoute();
+  document.querySelector('.sheet-tab[data-panel="ruta"]').click();
+}
+function removeFromRoute(id){
+  state.route = state.route.filter(r => r.id != id);
+  renderRoute();
+}
+function moveWaypoint(id, dir){
+  const i = state.route.findIndex(r => r.id == id);
+  const j = i + dir;
+  if (i<0 || j<0 || j>=state.route.length) return;
+  [state.route[i], state.route[j]] = [state.route[j], state.route[i]];
+  renderRoute();
+}
+ 
+function renderRoute(){
+  const wrap = document.getElementById('waypointList');
+  const empty = document.getElementById('routeEmpty');
+  const summary = document.getElementById('routeSummary');
+  const actions = document.getElementById('routeActions');
+ 
+  if (!state.route.length){
+    wrap.innerHTML = ''; empty.style.display='block';
+    summary.style.display='none'; actions.style.display='none';
+    if (state.routeLine){ map.removeLayer(state.routeLine); state.routeLine=null; }
+    return;
+  }
+  empty.style.display='none'; summary.style.display='flex'; actions.style.display='flex';
+ 
+  wrap.innerHTML = state.route.map((s,i) => `
+    <div class="waypoint" data-id="${s.id}">
+      <div class="num">${i+1}</div>
+      <div class="wname">${escapeHtml(s.especie)} · ${escapeHtml(s.lugar)}</div>
+      <button class="wp-up" title="Subir">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="wp-down" title="Bajar">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="wp-del" title="Quitar">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>`).join('');
+ 
+  wrap.querySelectorAll('.wp-up').forEach(b => b.addEventListener('click', (e) => moveWaypoint(e.target.closest('.waypoint').dataset.id, -1)));
+  wrap.querySelectorAll('.wp-down').forEach(b => b.addEventListener('click', (e) => moveWaypoint(e.target.closest('.waypoint').dataset.id, 1)));
+  wrap.querySelectorAll('.wp-del').forEach(b => b.addEventListener('click', (e) => removeFromRoute(e.target.closest('.waypoint').dataset.id)));
+ 
+  // distancia total y línea en el mapa
+  let dist = 0;
+  for (let i=1; i<state.route.length; i++) dist += haversine(state.route[i-1], state.route[i]);
+  document.getElementById('routeDist').textContent = fmtKm(dist);
+  document.getElementById('routeTime').textContent = Math.round(dist/4.5*60) + ' min'; // ritmo caminata ~4.5km/h
+  document.getElementById('routeCount').textContent = state.route.length;
+ 
+  if (state.routeLine) map.removeLayer(state.routeLine);
+  state.routeLine = L.polyline(state.route.map(s => [s.lat, s.lng]), { color:'#35633F', weight:4, opacity:.8, dashArray:'2 8' }).addTo(map);
+  map.fitBounds(state.routeLine.getBounds(), { padding:[50,50] });
+}
+ 
+document.getElementById('clearRouteBtn').addEventListener('click', () => {
+  state.route = [];
+  renderRoute();
+  stopNav();
+});
+ 
+let navActive = false;
+document.getElementById('navBtn').addEventListener('click', () => {
+  navActive ? stopNav() : startNav();
+});
+ 
+function startNav(){
+  if (!navigator.geolocation){
+    alert('Tu navegador no tiene GPS disponible.');
+    return;
+  }
+  navActive = true;
+  document.getElementById('navBtn').textContent = 'Detener navegación';
+  const statusEl = document.getElementById('navStatus');
+  statusEl.style.display = 'block';
+ 
+  state.gpsWatchId = navigator.geolocation.watchPosition((pos) => {
+    const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    if (!state.meMarker){
+      state.meMarker = L.marker([me.lat, me.lng], { icon: makeIcon('me') }).addTo(map);
+    } else {
+      state.meMarker.setLatLng([me.lat, me.lng]);
+    }
+    const next = state.route[0];
+    if (next){
+      const d = haversine(me, next);
+      statusEl.innerHTML = `Siguiente punto: <b>${escapeHtml(next.especie)}</b> · ${fmtKm(d)}`;
+      if (d < 0.05){ // <50m, llegó
+        state.route.shift();
+        renderRoute();
+      }
+    } else {
+      statusEl.innerHTML = '¡Llegaste al último punto de tu ruta! 🎉';
+    }
+  }, (err) => {
+    statusEl.textContent = 'No se pudo obtener tu ubicación: ' + err.message;
+  }, { enableHighAccuracy:true, maximumAge:5000, timeout:15000 });
+}
+function stopNav(){
+  navActive = false;
+  document.getElementById('navBtn').textContent = 'Iniciar navegación GPS';
+  document.getElementById('navStatus').style.display = 'none';
+  if (state.gpsWatchId !== null){ navigator.geolocation.clearWatch(state.gpsWatchId); state.gpsWatchId = null; }
+}
+ 
+/* =========================================================================
+   UBICARME / NUEVO AVISTAMIENTO (botones flotantes)
+   ========================================================================= */
+document.getElementById('locateBtn').addEventListener('click', () => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    map.setView(ll, 13);
+    if (!state.meMarker) state.meMarker = L.marker(ll, { icon: makeIcon('me') }).addTo(map);
+    else state.meMarker.setLatLng(ll);
+  }, () => alert('No pudimos obtener tu ubicación.'));
+});
+ 
+document.getElementById('addSightingBtn').addEventListener('click', () => {
+  alert('Para registrar un avistamiento nuevo: toca el mapa donde lo viste. Luego usa "A mi ruta" o comparte por WhatsApp desde la tarjeta de cualquier avistamiento cercano como referencia.\n\n(Este botón queda listo para conectar a tu formulario/backend real.)');
+});
+ 
+/* =========================================================================
+   ALERTAS DE RAREZAS
+   ========================================================================= */
+const alertBtn = document.getElementById('alertBtn');
+alertBtn.addEventListener('click', async () => {
+  if (!state.alertsOn){
+    if (window.Notification && Notification.permission !== 'granted'){
+      try { await Notification.requestPermission(); } catch(e){}
+    }
+    state.alertsOn = true;
+    alertBtn.classList.add('alert-on');
+    showToast({ especie:'Alertas activadas', lugar:'Te avisaremos de nuevas rarezas' }, true);
+  } else {
+    state.alertsOn = false;
+    alertBtn.classList.remove('alert-on');
+  }
+});
+ 
+function showToast(s, isSystem){
+  const stack = document.getElementById('toastStack');
+  const div = document.createElement('div');
+  div.className = 'toast';
+  div.innerHTML = `
+    <div class="ic">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill="#fff"/></svg>
+    </div>
+    <div class="tx"><b>${isSystem ? escapeHtml(s.especie) : 'Rareza reportada: ' + escapeHtml(s.especie)}</b><span>${escapeHtml(s.lugar)}${s.region ? ', '+escapeHtml(s.region) : ''}</span></div>`;
+  stack.appendChild(div);
+  if (!isSystem){
+    div.style.cursor = 'pointer';
+    div.addEventListener('click', () => openCard(s));
+  }
+  setTimeout(() => { div.style.opacity='0'; div.style.transform='translateY(-10px)'; div.style.transition='all .3s'; setTimeout(()=>div.remove(), 300); }, 5500);
+}
+ 
+// Simulación: cada cierto tiempo "aparece" una nueva rareza tomada del pool.
+setInterval(() => {
+  if (!state.alertsOn) return;
+  const r = RARITIES[state.rarityPoolIndex % RARITIES.length];
+  state.rarityPoolIndex++;
+  showToast(r, false);
+  if (window.Notification && Notification.permission === 'granted'){
+    new Notification('Rareza reportada: ' + r.especie, { body: r.lugar + ', ' + r.region });
+  }
+}, 30000);
+ 
+/* =========================================================================
+   INIT
+   ========================================================================= */
+renderSpeciesChips();
+renderMarkers();
+renderRecentList();
+renderRareList();
+renderStats();
+renderRoute();
+ 
+})();
+</script>
 </body>
 </html>
+ 
