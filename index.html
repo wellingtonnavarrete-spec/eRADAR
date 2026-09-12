@@ -55,7 +55,6 @@
         .list-item:hover { background: #f9fafb; }
         
         .list-item-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #e5e7eb; position: relative; }
-        /* Efecto loading imagen */
         .list-item-img.loading::after { content: "\f110"; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
 
@@ -85,7 +84,7 @@
         .btn-maps { background-color: var(--btn-maps); grid-column: 1 / 2; }
         .btn-route { background-color: var(--btn-route); grid-column: 1 / 3; }
 
-        .hotspot-icon { background-color: var(--white); border-radius: 50%; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; border: 2px solid #f59e0b; }
+        .hotspot-icon { background-color: var(--white); border-radius: 50%; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; border: 2px solid #f59e0b; cursor: pointer; }
 
         /* MOBILE */
         .mobile-menu-btn { display: none; }
@@ -160,7 +159,7 @@
     
     <script>
         const EBIRD_API_KEY = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
-        const DEFAULT_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Pixel transparente temporal
+        const DEFAULT_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; 
         
         const map = L.map('map', { zoomControl: false }).setView([-38.7359, -72.5904], 5);
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -170,11 +169,10 @@
         let userLocation = null;
         let markers = {}; 
         let markerLayers = L.layerGroup().addTo(map);
-        let hotspotLayers = L.layerGroup().addTo(map);
-        let allUniqueBirds = []; // Lista purgada de repeticiones
+        let hotspotLayers = L.layerGroup().addTo(map); // Capa para Hotspots
+        let allUniqueBirds = []; 
         let currentFilteredBirds = [];
-        let maskLayer = null;
-        let imageCache = {}; // Caché de imágenes de Wikipedia para no consultar 2 veces
+        let imageCache = {}; 
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function switchTab(tabId, btn) {
@@ -187,12 +185,89 @@
             navigator.geolocation.getCurrentPosition(pos => userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude));
         }
 
-        // BÚSQUEDA DE IMÁGENES ASÍNCRONA (Fluida y en segundo plano)
-        async function fetchImageForBird(sciName, listImgId) {
-            if (imageCache[sciName]) {
-                applyImage(listImgId, imageCache[sciName]);
-                return;
+        // --- SISTEMA CORREGIDO DE HOTSPOTS ---
+        async function fetchHotspotBirds(locId) {
+            const container = document.getElementById(`hs-birds-${locId}`);
+            if(!container || container.innerHTML.includes('<li>')) return; 
+            
+            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando lista...';
+            try {
+                // LA SOLUCIÓN: La URL es directa al locId, sin usar "/hotspot/"
+                const url = `https://api.ebird.org/v2/data/obs/${locId}/recent?maxResults=5&sppLocale=es-CL`;
+                const res = await fetch(url, {
+                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                });
+                
+                if (!res.ok) throw new Error("Error en red de eBird");
+                
+                const birds = await res.json();
+                
+                if(birds.length === 0) {
+                    container.innerHTML = "No hay registros recientes.";
+                    return;
+                }
+                
+                let html = '<ul style="padding-left: 15px; margin-top: 8px; margin-bottom: 0;">';
+                birds.forEach(b => {
+                    html += `<li style="margin-bottom: 4px;"><b>${b.comName || b.sciName}</b> <span style="font-size:0.75rem; color:#9ca3af;">(${b.howMany || 'X'})</span></li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } catch(e) { 
+                console.error("Error Hotspot:", e);
+                container.innerHTML = "<span style='color:red;'>No se pudo cargar la lista.</span>"; 
             }
+        }
+
+        async function findHotspotsAlongRoute(route) {
+            hotspotLayers.clearLayers();
+            const coords = route.coordinates;
+            const midIndex = Math.floor(coords.length / 2);
+            const midPoint = coords[midIndex];
+            
+            try {
+                // Busca hotspots en 50km a la redonda desde la mitad de la ruta
+                const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${midPoint.lat}&lng=${midPoint.lng}&fmt=json&dist=50`, {
+                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                });
+                const hotspots = await res.json();
+                
+                // Filtra solo los que están a menos de 3km del trazado GPS de la ruta
+                const routeHotspots = hotspots.filter(hs => {
+                    return coords.some(c => {
+                        const dLat = (c.lat - hs.lat) * 111;
+                        const dLng = (c.lng - hs.lng) * 111 * Math.cos(hs.lat * Math.PI / 180);
+                        return Math.sqrt(dLat*dLat + dLng*dLng) < 3; 
+                    });
+                });
+
+                routeHotspots.forEach(hs => {
+                    const icon = L.divIcon({
+                        html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
+                        className: 'hotspot-icon',
+                        iconSize: [30, 30]
+                    });
+
+                    const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
+                        <div style="padding:5px; width: 230px;">
+                            <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
+                            <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px;">${hs.locName}</p>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
+                            <p style="font-size: 0.8rem; color: var(--brand-dark); font-weight: bold;">Aves avistadas aquí:</p>
+                            <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563; margin-top: 5px;">Toca para cargar especies...</div>
+                        </div>
+                    `);
+                    
+                    marker.on('click', () => fetchHotspotBirds(hs.locId));
+                    hotspotLayers.addLayer(marker);
+                });
+                
+            } catch(e) { console.error("Error buscando hotspots:", e); }
+        }
+
+        // --- SISTEMA DE FLUIDEZ DE IMÁGENES ---
+        async function fetchImageForBird(sciName, listImgId) {
+            if (imageCache[sciName]) { applyImage(listImgId, imageCache[sciName]); return; }
             try {
                 const url = `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(sciName)}&gsrlimit=1&prop=pageimages&pithumbsize=400&format=json&origin=*`;
                 const res = await fetch(url);
@@ -208,7 +283,6 @@
                     }
                 }
             } catch(e) {}
-            // Si falla, pone un placeholder general
             const fallback = 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80';
             imageCache[sciName] = fallback;
             applyImage(listImgId, fallback);
@@ -216,13 +290,9 @@
 
         function applyImage(elementId, src) {
             const el = document.getElementById(elementId);
-            if(el) {
-                el.src = src;
-                el.classList.remove('loading');
-            }
+            if(el) { el.src = src; el.classList.remove('loading'); }
         }
 
-        // GENERADOR DE POPUP DINÁMICO (Crea el HTML justo al tocar el marcador para asegurar la imagen)
         function buildPopupHTML(bird) {
             const imgUrl = imageCache[bird.sciName] || 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80';
             
@@ -260,14 +330,11 @@
             if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
         }
 
-        // PÍLDORAS DINÁMICAS (Extrae los nombres reales de la data)
+        // --- PÍLDORAS Y FILTROS ---
         function generateDynamicPills(birdsData) {
             const container = document.getElementById('dynamic-pills');
             container.innerHTML = '<button class="pill active-pill" onclick="filterBySpecies(\'ALL\', this)">Todas</button>';
-            
-            // Extraer nombres comunes únicos
             const uniqueNames = [...new Set(birdsData.map(b => b.comName))];
-            
             uniqueNames.slice(0, 15).forEach(name => {
                 const btn = document.createElement('button');
                 btn.className = 'pill';
@@ -281,21 +348,16 @@
             document.querySelectorAll('#dynamic-pills .pill').forEach(b => b.classList.remove('active-pill'));
             if(btnElement) btnElement.classList.add('active-pill');
 
-            if(speciesName === 'ALL') {
-                renderBirdsAndMap(currentFilteredBirds);
-            } else {
-                renderBirdsAndMap(currentFilteredBirds.filter(b => b.comName === speciesName));
-            }
+            if(speciesName === 'ALL') renderBirdsAndMap(currentFilteredBirds);
+            else renderBirdsAndMap(currentFilteredBirds.filter(b => b.comName === speciesName));
         }
 
-        // RENDERIZADO AL INSTANTE
         function renderBirdsAndMap(birdsToRender) {
             markerLayers.clearLayers();
             markers = {};
             const listContainer = document.getElementById('sightings-list');
             listContainer.innerHTML = ''; 
             
-            // EL CONTADOR MUESTRA EL NÚMERO REAL
             document.getElementById('rare-count').textContent = birdsToRender.length;
 
             if(birdsToRender.length === 0) {
@@ -307,7 +369,6 @@
                 const id = `marker_${i}`;
                 const imgId = `img_list_${i}`;
 
-                // Insertar HTML en la lista al instante con imagen por defecto de carga
                 const listItem = document.createElement('div');
                 listItem.className = 'list-item';
                 listItem.onclick = () => openMarker(id, bird.lat, bird.lng);
@@ -320,48 +381,35 @@
                     </div>`;
                 listContainer.appendChild(listItem);
 
-                // Crear Marcador
                 const marker = L.marker([bird.lat, bird.lng]);
-                
-                // Generar popup en el momento que el usuario haga click para asegurar que la imagen exista
                 marker.bindPopup(() => buildPopupHTML(bird));
                 
                 markers[id] = marker;
                 markerLayers.addLayer(marker);
 
-                // Desencadenar la búsqueda de imagen asíncrona
                 fetchImageForBird(bird.sciName, imgId);
             });
         }
 
-        // ELIMINACIÓN DE REPETICIONES
         function processRawEBirdData(rawBirds) {
             const seen = new Set();
             const unique = [];
-            
             rawBirds.forEach(b => {
                 if(!b.obsValid) return;
-                // Clave única: Lugar + Código de Especie (evita que la misma ave repetida por 10 personas salga 10 veces)
                 const key = b.locId + "_" + b.speciesCode;
-                if(!seen.has(key)) {
-                    seen.add(key);
-                    unique.push(b);
-                }
+                if(!seen.has(key)) { seen.add(key); unique.push(b); }
             });
             return unique;
         }
 
-        // INICIO: Carga de Datos
         async function initData() {
             try {
                 const response = await fetch(`https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`, {
                     headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
                 });
                 const rawBirds = await response.json();
-                
                 allUniqueBirds = processRawEBirdData(rawBirds);
                 currentFilteredBirds = allUniqueBirds;
-                
                 generateDynamicPills(allUniqueBirds);
                 renderBirdsAndMap(allUniqueBirds);
             } catch (error) {
@@ -369,10 +417,9 @@
             }
         }
 
-        // LÓGICA DE FILTRADO POR REGIÓN
         window.filterRegion = function(regionCode) {
             document.querySelectorAll('#dynamic-pills .pill').forEach(b => b.classList.remove('active-pill'));
-            document.querySelector('#dynamic-pills .pill').classList.add('active-pill'); // Reset a "Todas"
+            document.querySelector('#dynamic-pills .pill').classList.add('active-pill');
 
             if (regionCode === 'ALL') {
                 currentFilteredBirds = allUniqueBirds;
@@ -385,7 +432,7 @@
             renderBirdsAndMap(currentFilteredBirds);
         };
 
-        // RUTAS
+        // --- SISTEMA DE RUTAS (Dispara la búsqueda de Hotspots) ---
         window.drawRoute = function(lat, lng) {
             if (!userLocation) { alert("Activa el GPS."); return; }
             if (routingControl) map.removeControl(routingControl);
@@ -399,6 +446,9 @@
             routingControl.on('routeselected', function(e) {
                 const container = document.querySelector('.leaflet-routing-container');
                 if(container) document.getElementById('tab-ruta').appendChild(container);
+                
+                // DISPARA LA BÚSQUEDA DE HOTSPOTS AL CALCULAR LA RUTA
+                findHotspotsAlongRoute(e.route);
             });
 
             map.closePopup();
