@@ -152,7 +152,7 @@
         }
 
         .tab.active {
-            background: #e2e8f0; /* Color gris suave activo */
+            background: #e2e8f0; 
             color: var(--text-dark);
         }
 
@@ -226,7 +226,7 @@
         .list-item-sci { font-style: italic; color: var(--text-gray); font-size: 0.8rem; }
         .list-item-loc { font-size: 0.75rem; color: #9ca3af; margin-top: 2px; }
 
-        /* --- POPUP LEAFLET (Estilo Captura 1) --- */
+        /* --- POPUP LEAFLET --- */
         .leaflet-popup-content-wrapper {
             padding: 0;
             border-radius: 12px;
@@ -288,7 +288,6 @@
             font-size: 1rem;
         }
 
-        /* Botones del Popup (Grid exacto) */
         .popup-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -338,7 +337,6 @@
 
     <header>
         <div class="logo">
-            <!-- Icono por defecto mientras carga -->
             <img src="https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=100&q=80" alt="Logo">
             <div class="logo-text">
                 <h1>Avistar</h1>
@@ -379,7 +377,6 @@
 
             <div class="list-header">Avistamientos Recientes</div>
             <div class="sightings-list" id="sightings-list">
-                <!-- Los elementos se inyectarán aquí mediante JS -->
                 <div style="padding: 20px; text-align: center; color: #9ca3af;">Buscando aves raras...</div>
             </div>
         </aside>
@@ -392,7 +389,6 @@
     <script>
         const EBIRD_API_KEY = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
         
-        // 1. Inicializar Mapa (CartoDB para evitar bloqueo de OpenStreetMap)
         const map = L.map('map', { zoomControl: false }).setView([-38.7359, -72.5904], 6);
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
@@ -402,24 +398,21 @@
 
         let routingControl = null;
         let userLocation = null;
-        let markers = {}; // Guardar referencias de marcadores
+        let markers = {};
 
-        // 2. Control del Menú Móvil
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
         }
 
-        // 3. Geolocalización
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(position => {
                 userLocation = L.latLng(position.coords.latitude, position.coords.longitude);
             });
         }
 
-        // 4. Buscar Imagen Wikipedia
         async function getWikipediaImage(scientificName) {
             try {
-                const query = encodeURIComponent(scientificName.split(' ')[0]); // Buscar por género si falla
+                const query = encodeURIComponent(scientificName.split(' ')[0]);
                 const res = await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(scientificName)}&prop=pageimages&format=json&pithumbsize=400&origin=*`);
                 const data = await res.json();
                 const pages = data.query.pages;
@@ -428,10 +421,9 @@
                     return pages[pageId].thumbnail.source;
                 }
             } catch (e) {}
-            return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; // Fallback
+            return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; 
         }
 
-        // 5. Trazar Ruta
         window.drawRoute = function(lat, lng) {
             if (!userLocation) {
                 alert("Activa el GPS para trazar rutas.");
@@ -447,18 +439,15 @@
             }).addTo(map);
             map.closePopup();
             
-            // Cerrar sidebar en móvil si está abierto
             document.getElementById('sidebar').classList.remove('open');
         };
 
-        // 6. Centrar y Abrir Popup desde la lista
         window.openMarker = function(id, lat, lng) {
             map.setView([lat, lng], 12);
             markers[id].openPopup();
             if(window.innerWidth <= 768) toggleSidebar();
         }
 
-        // 7. Cargar Datos de eBird
         async function fetchRareBirds() {
             try {
                 const url = `https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`;
@@ -469,7 +458,7 @@
                 
                 document.getElementById('rare-count').textContent = validBirds.length;
                 const listContainer = document.getElementById('sightings-list');
-                listContainer.innerHTML = ''; // Limpiar estado de carga
+                listContainer.innerHTML = ''; 
 
                 for (let i = 0; i < validBirds.length; i++) {
                     const bird = validBirds[i];
@@ -482,11 +471,34 @@
                     const subId = bird.subId;
                     const id = `marker_${i}`;
                     
-                    // Imagen asíncrona
+                    // Extraer cantidad de ejemplares (o usar "X" si no hay conteo exacto)
+                    const howMany = bird.howMany ? bird.howMany : "X";
+
+                    // Formatear la hora al estilo "04:15 p.m."
+                    let timeString = "Hora no especificada";
+                    if (bird.obsDt && bird.obsDt.includes(' ')) {
+                        const timePart = bird.obsDt.split(' ')[1];
+                        let [hour, minute] = timePart.split(':');
+                        let h = parseInt(hour, 10);
+                        const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+                        h = h % 12 || 12;
+                        const formattedHour = h < 10 ? '0' + h : h;
+                        timeString = `${formattedHour}:${minute} ${ampm}`;
+                    }
+
                     getWikipediaImage(sciName).then(imageUrl => {
                         
-                        // 1. Generar HTML del Popup (Idéntico a Captura 1)
-                        const waText = encodeURIComponent(`¡Mira esta rareza! ${comName} en ${locName}. Lista eBird: https://ebird.org/checklist/${subId}`);
+                        // Estructura exacta para el mensaje de WhatsApp (incluyendo emojis y saltos de línea)
+                        const waMessage = `🐦 ${comName} (${sciName})
+⚠️ Rareza confirmada
+📍 ${locName}
+🕒 ${timeString}
+🔢 ${howMany} ejemplar(es)
+👤 ${obsName}
+🗺️ https://www.google.com/maps?q=${lat},${lng}
+📋 https://ebird.org/checklist/${subId}`;
+                        
+                        const waTextEncoded = encodeURIComponent(waMessage);
                         const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
                         
                         const popupContent = `
@@ -506,7 +518,7 @@
                                     </div>
 
                                     <div class="popup-actions">
-                                        <a href="https://wa.me/?text=${waText}" target="_blank" class="btn btn-wa"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
+                                        <a href="https://wa.me/?text=${waTextEncoded}" target="_blank" class="btn btn-wa"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
                                         <a href="https://ebird.org/checklist/${subId}" target="_blank" class="btn btn-ebird"><i class="fa-solid fa-list"></i> eBird</a>
                                         <a href="${mapsLink}" target="_blank" class="btn btn-maps"><i class="fa-solid fa-location-arrow"></i> G. Maps</a>
                                         <button onclick="drawRoute(${lat}, ${lng})" class="btn btn-route"><i class="fa-solid fa-route"></i> Trazar ruta aquí</button>
@@ -515,11 +527,9 @@
                             </div>
                         `;
 
-                        // 2. Agregar Marcador al mapa
                         const marker = L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
-                        markers[id] = marker; // Guardar referencia
+                        markers[id] = marker;
 
-                        // 3. Agregar elemento a la lista lateral (Idéntico a Captura 2)
                         const listItem = document.createElement('div');
                         listItem.className = 'list-item';
                         listItem.onclick = () => openMarker(id, lat, lng);
@@ -540,7 +550,6 @@
             }
         }
 
-        // Iniciar
         fetchRareBirds();
     </script>
 </body>
