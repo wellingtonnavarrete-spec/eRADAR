@@ -136,9 +136,9 @@
             
             <div id="tab-rarezas" class="tab-content active">
                 <div class="filter-pills" id="dynamic-pills">
-                    <!-- Aquí se inyectan las aves raras reales -->
+                    <!-- Las píldoras dinámicas se generan aquí -->
                 </div>
-                <div class="list-header">Avistamientos Únicos Recientes</div>
+                <div class="list-header">Especies Únicas Recientes</div>
                 <div class="sightings-list" id="sightings-list">
                     <div style="padding: 20px; text-align: center; color: #9ca3af;"><i class="fa-solid fa-circle-notch fa-spin"></i> Cargando aves raras...</div>
                 </div>
@@ -169,7 +169,7 @@
         let userLocation = null;
         let markers = {}; 
         let markerLayers = L.layerGroup().addTo(map);
-        let hotspotLayers = L.layerGroup().addTo(map); // Capa para Hotspots
+        let hotspotLayers = L.layerGroup().addTo(map);
         let allUniqueBirds = []; 
         let currentFilteredBirds = [];
         let imageCache = {}; 
@@ -185,21 +185,16 @@
             navigator.geolocation.getCurrentPosition(pos => userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude));
         }
 
-        // --- SISTEMA CORREGIDO DE HOTSPOTS ---
+        // --- SISTEMA DE HOTSPOTS ---
         async function fetchHotspotBirds(locId) {
             const container = document.getElementById(`hs-birds-${locId}`);
             if(!container || container.innerHTML.includes('<li>')) return; 
             
             container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando lista...';
             try {
-                // LA SOLUCIÓN: La URL es directa al locId, sin usar "/hotspot/"
                 const url = `https://api.ebird.org/v2/data/obs/${locId}/recent?maxResults=5&sppLocale=es-CL`;
-                const res = await fetch(url, {
-                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
-                });
-                
-                if (!res.ok) throw new Error("Error en red de eBird");
-                
+                const res = await fetch(url, { headers: { 'X-eBirdApiToken': EBIRD_API_KEY } });
+                if (!res.ok) throw new Error("Error red");
                 const birds = await res.json();
                 
                 if(birds.length === 0) {
@@ -213,10 +208,7 @@
                 });
                 html += '</ul>';
                 container.innerHTML = html;
-            } catch(e) { 
-                console.error("Error Hotspot:", e);
-                container.innerHTML = "<span style='color:red;'>No se pudo cargar la lista.</span>"; 
-            }
+            } catch(e) { container.innerHTML = "<span style='color:red;'>No se pudo cargar la lista.</span>"; }
         }
 
         async function findHotspotsAlongRoute(route) {
@@ -226,13 +218,11 @@
             const midPoint = coords[midIndex];
             
             try {
-                // Busca hotspots en 50km a la redonda desde la mitad de la ruta
                 const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${midPoint.lat}&lng=${midPoint.lng}&fmt=json&dist=50`, {
                     headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
                 });
                 const hotspots = await res.json();
                 
-                // Filtra solo los que están a menos de 3km del trazado GPS de la ruta
                 const routeHotspots = hotspots.filter(hs => {
                     return coords.some(c => {
                         const dLat = (c.lat - hs.lat) * 111;
@@ -261,11 +251,10 @@
                     marker.on('click', () => fetchHotspotBirds(hs.locId));
                     hotspotLayers.addLayer(marker);
                 });
-                
             } catch(e) { console.error("Error buscando hotspots:", e); }
         }
 
-        // --- SISTEMA DE FLUIDEZ DE IMÁGENES ---
+        // --- SISTEMA IMÁGENES ASÍNCRONAS ---
         async function fetchImageForBird(sciName, listImgId) {
             if (imageCache[sciName]) { applyImage(listImgId, imageCache[sciName]); return; }
             try {
@@ -330,7 +319,6 @@
             if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
         }
 
-        // --- PÍLDORAS Y FILTROS ---
         function generateDynamicPills(birdsData) {
             const container = document.getElementById('dynamic-pills');
             container.innerHTML = '<button class="pill active-pill" onclick="filterBySpecies(\'ALL\', this)">Todas</button>';
@@ -391,13 +379,21 @@
             });
         }
 
+        // --- LA SOLUCIÓN ESTRICTA PARA LAS REPETICIONES ---
         function processRawEBirdData(rawBirds) {
             const seen = new Set();
             const unique = [];
             rawBirds.forEach(b => {
                 if(!b.obsValid) return;
-                const key = b.locId + "_" + b.speciesCode;
-                if(!seen.has(key)) { seen.add(key); unique.push(b); }
+                
+                // AQUÍ ESTÁ EL CAMBIO: La llave única es SOLO EL CÓDIGO DEL AVE.
+                // Esto garantiza que el "Mirlo de pico corto" u otro solo se agregue una vez.
+                const key = b.speciesCode; 
+                
+                if(!seen.has(key)) { 
+                    seen.add(key); 
+                    unique.push(b); 
+                }
             });
             return unique;
         }
@@ -432,7 +428,6 @@
             renderBirdsAndMap(currentFilteredBirds);
         };
 
-        // --- SISTEMA DE RUTAS (Dispara la búsqueda de Hotspots) ---
         window.drawRoute = function(lat, lng) {
             if (!userLocation) { alert("Activa el GPS."); return; }
             if (routingControl) map.removeControl(routingControl);
@@ -447,7 +442,6 @@
                 const container = document.querySelector('.leaflet-routing-container');
                 if(container) document.getElementById('tab-ruta').appendChild(container);
                 
-                // DISPARA LA BÚSQUEDA DE HOTSPOTS AL CALCULAR LA RUTA
                 findHotspotsAlongRoute(e.route);
             });
 
