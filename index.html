@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>eRadar Chile - Móvil</title>
+    <title>eRadar Chile</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         :root {
-            --primary: #103323; 
-            --accent: #27ae60;
-            --bg-panel: rgba(255, 255, 255, 0.95);
-            --text-dark: #222;
+            --primary: #143d29; /* Verde oscuro elegante */
+            --bg-panel: #f8f9fa; /* Gris muy claro, casi blanco */
+            --text-dark: #111;
         }
 
         body, html { 
@@ -22,165 +21,133 @@
             overflow: hidden; background: #000;
         }
 
-        /* --- MAPA --- */
         #mapa { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* --- BOTÓN FLOTANTE (FAB) PARA REINICIAR --- */
+        /* Botón flotante para ver todo Chile */
         .fab-chile {
             position: absolute; top: 20px; right: 20px; z-index: 999;
             background: white; color: var(--primary);
             width: 45px; height: 45px; border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             border: none; font-size: 20px; cursor: pointer; transition: 0.2s;
         }
         .fab-chile:active { transform: scale(0.9); }
 
-        /* --- PANEL INFERIOR TIPO APP (BOTTOM SHEET) --- */
+        /* --- PANEL INFERIOR (Bottom Sheet) --- */
         #panel-inferior {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: var(--bg-panel);
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border-radius: 24px 24px 0 0;
-            padding: 15px 20px 30px; box-sizing: border-box;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+            padding: 15px 20px 35px; box-sizing: border-box;
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.1);
             z-index: 1000;
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            /* Por defecto muestra solo la parte superior (75px) */
-            transform: translateY(calc(100% - 75px)); 
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        #panel-inferior.abierto { transform: translateY(0); }
+        /* Clase para ocultar el panel parcialmente y dejar ver el mapa */
+        #panel-inferior.minimizado { transform: translateY(calc(100% - 65px)); }
 
-        /* Mango para deslizar (Visual) */
         .handle {
-            width: 40px; height: 5px; background: #ccc;
-            border-radius: 5px; margin: 0 auto 15px;
+            width: 45px; height: 5px; background: #d1d5db;
+            border-radius: 5px; margin: 0 auto 15px; cursor: pointer;
         }
 
-        /* Cabecera del Panel (Siempre visible) */
         .panel-header {
             display: flex; justify-content: space-between; align-items: center;
-            height: 30px; cursor: pointer;
+            margin-bottom: 20px; cursor: pointer;
         }
-        .panel-header h2 { margin: 0; font-size: 18px; color: var(--primary); display: flex; align-items: center; gap: 8px;}
-        .btn-ajustes { background: none; border: none; font-size: 20px; color: #666; padding: 0; cursor: pointer; }
-
-        /* Contenido del Panel (Se oculta al bajar) */
-        .panel-contenido { margin-top: 20px; opacity: 1; transition: opacity 0.3s; }
+        .panel-header h2 { margin: 0; font-size: 22px; color: var(--primary); font-weight: 800; display: flex; align-items: center; gap: 8px;}
         
+        /* Caja de Estado */
         #estado {
-            background: var(--primary); color: white; padding: 12px;
-            border-radius: 12px; font-size: 14px; text-align: center;
-            font-weight: 500; margin-bottom: 15px;
+            background: var(--primary); color: white; padding: 16px;
+            border-radius: 12px; font-size: 15px; text-align: center;
+            font-weight: 600; margin-bottom: 15px; letter-spacing: 0.3px;
         }
 
-        /* Configuración (API Key) Oculta por defecto */
-        #seccion-config {
-            display: none; background: #f0f3f1; padding: 15px;
-            border-radius: 12px; margin-bottom: 15px;
+        /* Tarjetas de Datos */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .tarjeta {
+            background: white; padding: 20px 15px; border-radius: 14px;
+            text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
         }
-        #seccion-config.visible { display: block; }
-        #seccion-config label { font-size: 12px; font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px;}
-        input[type="password"] { 
-            width: 100%; padding: 12px; box-sizing: border-box;
-            border: 1px solid #ccc; border-radius: 8px; font-size: 14px;
-        }
+        .tarjeta-numero { font-size: 32px; font-weight: 900; color: var(--primary); margin: 0 0 5px 0; line-height: 1; }
+        .tarjeta-titulo { font-size: 12px; color: #6b7280; margin: 0; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;}
 
-        /* --- POPUP DEL MAPA (Optimizado para móvil) --- */
-        .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; }
-        .leaflet-popup-content { margin: 0; width: 250px !important; }
-        .tarjeta-popup img { width: 100%; height: 150px; object-fit: cover; }
-        .tarjeta-popup .info { padding: 12px; }
-        .tarjeta-popup h3 { margin: 0 0 2px; font-size: 16px; color: var(--primary); }
-        .tarjeta-popup i { font-size: 12px; color: #777; display: block; margin-bottom: 8px; }
-        .tarjeta-popup p { margin: 3px 0; font-size: 12px; color: #444; }
+        /* --- POPUP DEL MAPA (Tarjeta de Ave) --- */
+        .leaflet-popup-content-wrapper { border-radius: 16px; padding: 0; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .leaflet-popup-content { margin: 0; width: 260px !important; }
+        .tarjeta-popup img { width: 100%; height: 160px; object-fit: cover; }
+        .tarjeta-popup .info { padding: 15px; }
+        .tarjeta-popup h3 { margin: 0 0 2px; font-size: 17px; color: var(--primary); font-weight: 800;}
+        .tarjeta-popup i { font-size: 13px; color: #6b7280; display: block; margin-bottom: 10px; }
+        .tarjeta-popup p { margin: 4px 0; font-size: 13px; color: #374151; }
         .btn-ebird { 
             display: block; background: var(--primary); color: white !important; 
-            text-align: center; text-decoration: none; padding: 10px; 
-            font-weight: bold; margin-top: 10px; border-radius: 8px; font-size: 13px;
+            text-align: center; text-decoration: none; padding: 12px; 
+            font-weight: bold; margin-top: 12px; border-radius: 10px; font-size: 14px; transition: 0.2s;
         }
     </style>
 </head>
 <body>
 
-    <!-- Mapa -->
     <div id="mapa"></div>
 
-    <!-- Botón Flotante: Volver a Chile -->
     <button class="fab-chile" onclick="centrarChile()">🌎</button>
 
-    <!-- Panel Inferior (App-like) -->
-    <div id="panel-inferior" class="abierto">
+    <div id="panel-inferior">
         <div class="handle" onclick="togglePanel()"></div>
         
         <div class="panel-header" onclick="togglePanel()">
             <h2>🦅 eRadar Chile</h2>
-            <button class="btn-ajustes" onclick="toggleConfig(event)">⚙️</button>
         </div>
 
         <div class="panel-contenido">
-            <div id="seccion-config">
-                <label>Tu API Key de eBird:</label>
-                <input type="password" id="inputApiKey" placeholder="Pega tu clave secreta aquí" onchange="guardarLlave()">
-            </div>
+            <div id="estado">👆 Toca una región para buscar rarezas.</div>
 
-            <div id="estado">👆 Toca una región en el mapa para buscar rarezas.</div>
+            <div class="dashboard-grid">
+                <div class="tarjeta">
+                    <p class="tarjeta-numero" id="val-rareza">0</p>
+                    <p class="tarjeta-titulo">Rarezas</p>
+                </div>
+                <div class="tarjeta">
+                    <p class="tarjeta-numero" id="val-tiempo">3</p>
+                    <p class="tarjeta-titulo">Días</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // =========================================================================
+        // 🔑 CONFIGURACIÓN: PEGA TU API KEY AQUÍ ADENTRO DE LAS COMILLAS
+        // =========================================================================
+        const MI_API_KEY = "89f4bf7f-47ac-4e68-949f-de69c890bce7"; 
+
         let mapa, capaRegiones;
         let marcadores = [];
         const CENTRO_CHILE = [-35.6, -71.5];
-        const ZOOM_INICIAL = window.innerWidth < 600 ? 4 : 5; // Menos zoom en celulares para que quepa
+        const ZOOM_INICIAL = window.innerWidth < 600 ? 4 : 5;
 
         document.addEventListener("DOMContentLoaded", () => {
-            // Configurar Mapa (sin controles de zoom molestos en móvil)
             mapa = L.map('mapa', { zoomControl: false, tap: false }).setView(CENTRO_CHILE, ZOOM_INICIAL); 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mapa);
-
-            // Revisar si ya hay API Key guardada
-            const llaveGuardada = localStorage.getItem('ebird_apikey');
-            if (llaveGuardada) {
-                document.getElementById('inputApiKey').value = llaveGuardada;
-            } else {
-                // Si no hay llave, mostramos la configuración abierta
-                document.getElementById('seccion-config').classList.add('visible');
-                document.getElementById('estado').innerText = "⚠️ Primero pega tu API Key en la configuración.";
-            }
-
             cargarRegiones();
         });
 
-        // --- CONTROLES DE INTERFAZ ---
         function togglePanel() {
-            document.getElementById('panel-inferior').classList.toggle('abierto');
-        }
-
-        function toggleConfig(e) {
-            e.stopPropagation(); // Evita que se cierre el panel entero
-            document.getElementById('seccion-config').classList.toggle('visible');
-        }
-
-        function cerrarPanelParaVerMapa() {
-            document.getElementById('panel-inferior').classList.remove('abierto');
+            document.getElementById('panel-inferior').classList.toggle('minimizado');
         }
 
         function centrarChile() {
             mapa.flyTo(CENTRO_CHILE, ZOOM_INICIAL, { duration: 1.2 });
             if(capaRegiones) capaRegiones.setStyle({ color: '#2c3e50', weight: 1, fillOpacity: 0.05, fillColor: '#2c3e50' });
             marcadores.forEach(m => mapa.removeLayer(m));
-            document.getElementById('estado').innerText = "👆 Toca una región en el mapa para buscar rarezas.";
-            document.getElementById('panel-inferior').classList.add('abierto');
+            document.getElementById('estado').innerText = "👆 Toca una región para buscar rarezas.";
+            document.getElementById('val-rareza').innerText = "0";
+            document.getElementById('panel-inferior').classList.remove('minimizado');
         }
 
-        function guardarLlave() {
-            localStorage.setItem('ebird_apikey', document.getElementById('inputApiKey').value.trim());
-            document.getElementById('estado').innerText = "✅ API Key guardada. ¡Toca una región!";
-            setTimeout(() => document.getElementById('seccion-config').classList.remove('visible'), 1000);
-        }
-
-        // --- LÓGICA DEL MAPA Y EBIRD ---
         async function cargarRegiones() {
             try {
                 const res = await fetch('https://raw.githubusercontent.com/fcortes/Chile-GeoJSON/master/Regional.geojson');
@@ -195,64 +162,62 @@
         }
 
         function interactuar(feature, layer) {
-            const apiKey = document.getElementById('inputApiKey').value.trim();
-            if (!apiKey) {
-                document.getElementById('panel-inferior').classList.add('abierto');
-                document.getElementById('seccion-config').classList.add('visible');
-                alert("Falta la API Key.");
+            if (MI_API_KEY === "TU_API_KEY_AQUI") {
+                alert("⚠️ Debes poner tu API Key en el código (Línea 121)");
                 return;
             }
-
-            guardarLlave();
             
-            // Efecto visual en regiones
+            // Oscurecer mapa y resaltar región
             capaRegiones.setStyle({ color: '#000', weight: 0.5, fillOpacity: 0.85, fillColor: '#05110c' });
             layer.setStyle({ color: '#27ae60', weight: 3, fillOpacity: 0 });
-            
-            // Acercamiento a la región
-            mapa.flyToBounds(layer.getBounds(), { padding: [10, 10], duration: 1 });
+            mapa.flyToBounds(layer.getBounds(), { padding: [20, 20], duration: 1 });
 
-            // Cerrar el panel automáticamente para dejar ver el mapa
-            cerrarPanelParaVerMapa();
+            // Minimizar panel para ver el mapa
+            document.getElementById('panel-inferior').classList.add('minimizado');
 
             const nombre = feature.properties.Region || feature.properties.NOM_REG;
             const codigo = obtenerCodigoEbird(nombre);
             
             if (codigo) {
-                document.getElementById('estado').innerText = `Buscando en ${nombre}...`;
-                buscarAves(codigo, apiKey);
+                document.getElementById('estado').innerText = `Rastreando ${nombre}...`;
+                buscarAves(codigo);
             }
         }
 
-        async function buscarAves(codigo, apiKey) {
-            const url = `https://api.ebird.org/v2/data/obs/${codigo}/recent/notable?detail=full&sppLocale=es-CL&back=5`;
+        async function buscarAves(codigo) {
+            // back=3 significa que busca en los últimos 3 días (como en tu captura)
+            const url = `https://api.ebird.org/v2/data/obs/${codigo}/recent/notable?detail=full&sppLocale=es-CL&back=3`;
             try {
-                const res = await fetch(url, { headers: { 'X-eBirdApiToken': apiKey } });
-                if (!res.ok) throw new Error("Error con la API Key");
+                const res = await fetch(url, { headers: { 'X-eBirdApiToken': MI_API_KEY } });
+                if (!res.ok) throw new Error("API Key incorrecta o error de conexión");
                 const aves = await res.json();
                 
-                document.getElementById('estado').innerHTML = `<strong>${aves.length} rarezas</strong> encontradas en los últimos 5 días.`;
-                dibujarPines(aves);
+                document.getElementById('estado').innerHTML = `Se detectaron ${aves.length} rarezas en los últimos 3 días.`;
+                document.getElementById('val-rareza').innerText = aves.length;
+                dibujarPuntosMinimalistas(aves);
             } catch (e) {
                 document.getElementById('estado').innerText = `Error: ${e.message}`;
             }
         }
 
-        function dibujarPines(aves) {
+        function dibujarPuntosMinimalistas(aves) {
             marcadores.forEach(m => mapa.removeLayer(m));
             marcadores = [];
 
-            const iconoRaro = L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-            });
-
             aves.forEach(ave => {
                 if(ave.lat && ave.lng) {
-                    const marcador = L.marker([ave.lat, ave.lng], {icon: iconoRaro}).addTo(mapa);
+                    // PUNTOS MINIMALISTAS (Círculos pequeños en vez de pines grandes)
+                    const marcador = L.circleMarker([ave.lat, ave.lng], {
+                        radius: 6,           // Tamaño del punto
+                        fillColor: "#e74c3c", // Color rojo vibrante
+                        color: "#ffffff",     // Borde blanco
+                        weight: 2,            // Grosor del borde
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(mapa);
+                    
                     marcador.on('click', async (e) => {
-                        const pop = L.popup().setLatLng(e.latlng).setContent('<div style="padding:15px; text-align:center;">Buscando ave...</div>').openOn(mapa);
+                        const pop = L.popup().setLatLng(e.latlng).setContent('<div style="padding:15px; text-align:center; color:#143d29; font-weight:bold;">Analizando especie...</div>').openOn(mapa);
                         
                         const fotoUrl = await buscarFoto(ave.sciName);
                         const fecha = ave.obsDt ? ave.obsDt.split(' ')[0] : '';
@@ -266,7 +231,7 @@
                                     <p>📍 ${ave.locName}</p>
                                     <p>🕒 ${fecha}</p>
                                     <p>👤 ${ave.userDisplayName || 'Anónimo'}</p>
-                                    <a href="https://ebird.org/checklist/${ave.subId}" target="_blank" class="btn-ebird">Ver en eBird</a>
+                                    <a href="https://ebird.org/checklist/${ave.subId}" target="_blank" class="btn-ebird">Ver lista en eBird</a>
                                 </div>
                             </div>
                         `;
