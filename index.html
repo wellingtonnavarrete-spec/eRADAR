@@ -5,80 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Avistar - Aves de Chile</title>
     
-    <!-- Fuentes y Estilos -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet CSS y Routing -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 
     <style>
         :root {
-            --brand-dark: #2e7d32;
-            --brand-green: #388e3c;
-            --btn-whatsapp: #2dd4bf; 
-            --btn-ebird-bg: #2b7a3b;
-            --btn-ebird-text: #0ea5e9;
-            --btn-maps: #3b82f6;
-            --btn-route: #f97316;
-            --text-dark: #1f2937;
-            --text-gray: #6b7280;
-            --bg-light: #f3f4f6;
-            --white: #ffffff;
+            --brand-dark: #2e7d32; --brand-green: #388e3c; --btn-whatsapp: #2dd4bf; 
+            --btn-ebird-bg: #2b7a3b; --btn-ebird-text: #0ea5e9; --btn-maps: #3b82f6;
+            --btn-route: #f97316; --text-dark: #1f2937; --text-gray: #6b7280;
+            --bg-light: #f3f4f6; --white: #ffffff;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
         body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-light); }
 
-        /* --- HEADER --- */
+        /* HEADER */
         header { background-color: var(--white); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 2000; position: relative; }
         .logo { display: flex; align-items: center; gap: 10px; }
         .logo img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
         .logo-text h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-dark); line-height: 1; }
         .logo-text span { font-size: 0.75rem; color: var(--text-gray); font-weight: 600; }
-        
         .header-actions { display: flex; align-items: center; gap: 15px; }
         .location-select { padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: #f9fafb; font-size: 0.9rem; color: var(--text-dark); outline: none; max-width: 150px; }
         .icon-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-gray); cursor: pointer; }
 
-        /* --- MAIN LAYOUT --- */
+        /* LAYOUT & SIDEBAR */
         .main-content { display: flex; flex: 1; position: relative; height: calc(100vh - 60px); }
         #map { flex-grow: 1; height: 100%; z-index: 1; }
-
-        /* --- SIDEBAR & TABS --- */
         #sidebar { width: 380px; background: var(--white); display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.05); z-index: 1500; transition: transform 0.3s ease; }
+        
         .tabs { display: flex; padding: 15px 15px 5px; gap: 10px; border-bottom: 1px solid #f3f4f6; }
         .tab { flex: 1; padding: 8px; border-radius: 20px; border: none; background: var(--white); color: var(--text-gray); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
         .tab.active { background: #e2e8f0; color: var(--text-dark); }
         .badge { background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: 5px; }
-        .tab-content { display: none; flex-direction: column; flex: 1; overflow-y: auto; }
+        .tab-content { display: none; flex-direction: column; flex: 1; overflow-y: hidden; }
         .tab-content.active { display: flex; }
 
-        /* Elementos de Rarezas */
-        .filter-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 15px; }
-        .pill { padding: 5px 12px; border: 1px solid #e5e7eb; border-radius: 20px; background: var(--white); font-size: 0.8rem; }
+        /* FILTROS DINÁMICOS */
+        .filter-pills { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding: 15px; scrollbar-width: none; }
+        .filter-pills::-webkit-scrollbar { display: none; }
+        .pill { white-space: nowrap; padding: 5px 12px; border: 1px solid #e5e7eb; border-radius: 20px; background: var(--white); font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+        .pill:hover, .pill.active-pill { background: var(--brand-dark); color: white; border-color: var(--brand-dark); }
+
         .list-header { font-size: 0.8rem; font-weight: 800; color: var(--text-gray); padding: 0 15px 10px; text-transform: uppercase; }
-        
         .sightings-list { flex: 1; overflow-y: auto; }
         .list-item { display: flex; gap: 12px; padding: 12px 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
         .list-item:hover { background: #f9fafb; }
-        .list-item-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #e5e7eb; }
+        
+        .list-item-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #e5e7eb; position: relative; }
+        /* Efecto loading imagen */
+        .list-item-img.loading::after { content: "\f110"; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
         .list-item-info { display: flex; flex-direction: column; justify-content: center; }
         .list-item-title { font-weight: 700; color: var(--text-dark); font-size: 0.95rem; }
         .list-item-sci { font-style: italic; color: var(--text-gray); font-size: 0.8rem; }
         .list-item-loc { font-size: 0.75rem; color: #9ca3af; margin-top: 2px; }
 
-        /* Contenedor de Ruta Limpio */
-        #tab-ruta { padding: 15px; }
+        /* RUTA Y POPUPS */
+        #tab-ruta { padding: 15px; overflow-y: auto; }
         .leaflet-routing-container { background: transparent !important; box-shadow: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
         .leaflet-right .leaflet-routing-container { display: none !important; }
-
-        /* --- POPUP LEAFLET --- */
+        
         .leaflet-popup-content-wrapper { padding: 0; border-radius: 12px; overflow: hidden; }
         .leaflet-popup-content { margin: 0; width: 290px !important; }
         .leaflet-popup-close-button { color: white !important; text-shadow: 0 1px 3px rgba(0,0,0,0.5); font-size: 1.2rem !important; }
-        .popup-img { width: 100%; height: 160px; object-fit: cover; }
+        .popup-img { width: 100%; height: 160px; object-fit: cover; background: #e5e7eb; }
         .popup-body { padding: 15px 20px; }
         .popup-title { font-size: 1.25rem; color: var(--brand-dark); font-weight: 800; margin-bottom: 2px; }
         .popup-sci { font-style: italic; color: var(--text-gray); font-size: 0.95rem; margin-bottom: 15px; }
@@ -91,19 +85,9 @@
         .btn-maps { background-color: var(--btn-maps); grid-column: 1 / 2; }
         .btn-route { background-color: var(--btn-route); grid-column: 1 / 3; }
 
-        /* Icono de Hotspot */
-        .hotspot-icon {
-            background-color: var(--white);
-            border-radius: 50%;
-            padding: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #f59e0b;
-        }
+        .hotspot-icon { background-color: var(--white); border-radius: 50%; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; border: 2px solid #f59e0b; }
 
-        /* --- MOBILE --- */
+        /* MOBILE */
         .mobile-menu-btn { display: none; }
         @media (max-width: 768px) {
             .mobile-menu-btn { display: block; }
@@ -117,12 +101,8 @@
     <header>
         <div class="logo">
             <img src="https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=100&q=80" alt="Logo">
-            <div class="logo-text">
-                <h1>Avistar</h1>
-                <span>Aves de Chile</span>
-            </div>
+            <div class="logo-text"><h1>Avistar</h1><span>Aves de Chile</span></div>
         </div>
-        
         <div class="header-actions">
             <select class="location-select" id="region-selector" onchange="filterRegion(this.value)">
                 <option value="ALL">Todo Chile</option>
@@ -149,7 +129,6 @@
 
     <div class="main-content">
         <div id="map"></div>
-        
         <aside id="sidebar">
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('rarezas', this)">Rarezas <span class="badge" id="rare-count">0</span></button>
@@ -157,15 +136,12 @@
             </div>
             
             <div id="tab-rarezas" class="tab-content active">
-                <div class="filter-pills">
-                    <button class="pill">Zorzal</button>
-                    <button class="pill">Queltehue</button>
-                    <button class="pill">Rayadito</button>
-                    <button class="pill">Chucao</button>
+                <div class="filter-pills" id="dynamic-pills">
+                    <!-- Aquí se inyectan las aves raras reales -->
                 </div>
-                <div class="list-header">Avistamientos Recientes</div>
+                <div class="list-header">Avistamientos Únicos Recientes</div>
                 <div class="sightings-list" id="sightings-list">
-                    <div style="padding: 20px; text-align: center; color: #9ca3af;">Cargando aves raras...</div>
+                    <div style="padding: 20px; text-align: center; color: #9ca3af;"><i class="fa-solid fa-circle-notch fa-spin"></i> Cargando aves raras...</div>
                 </div>
             </div>
 
@@ -184,156 +160,99 @@
     
     <script>
         const EBIRD_API_KEY = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
+        const DEFAULT_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Pixel transparente temporal
         
         const map = L.map('map', { zoomControl: false }).setView([-38.7359, -72.5904], 5);
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '© Esri'
-        }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' }).addTo(map);
 
         let routingControl = null;
         let userLocation = null;
         let markers = {}; 
         let markerLayers = L.layerGroup().addTo(map);
-        let hotspotLayers = L.layerGroup().addTo(map); // Capa nueva para hotspots de ruta
-        let allBirdsData = [];
+        let hotspotLayers = L.layerGroup().addTo(map);
+        let allUniqueBirds = []; // Lista purgada de repeticiones
+        let currentFilteredBirds = [];
         let maskLayer = null;
-
-        const regionQueryNames = {
-            'CL-AP': 'Región de Arica y Parinacota', 'CL-TA': 'Región de Tarapacá', 'CL-AN': 'Región de Antofagasta',
-            'CL-AT': 'Región de Atacama', 'CL-CO': 'Región de Coquimbo', 'CL-VS': 'Región de Valparaíso',
-            'CL-RM': 'Región Metropolitana de Santiago', 'CL-LI': "Región del Libertador General Bernardo O'Higgins",
-            'CL-ML': 'Región del Maule', 'CL-NB': 'Región de Ñuble', 'CL-BI': 'Región del Biobío',
-            'CL-AR': 'Región de la Araucanía', 'CL-LR': 'Región de Los Ríos', 'CL-LL': 'Región de Los Lagos',
-            'CL-AI': 'Región Aysén del General Carlos Ibáñez del Campo', 'CL-MA': 'Región de Magallanes y de la Antártica Chilena'
-        };
+        let imageCache = {}; // Caché de imágenes de Wikipedia para no consultar 2 veces
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-
-        function switchTab(tabId, btnElement) {
-            document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            btnElement.classList.add('active');
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab, .tab-content').forEach(e => e.classList.remove('active'));
+            btn.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
         }
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
-            });
+            navigator.geolocation.getCurrentPosition(pos => userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude));
         }
 
-        async function getWikipediaImage(scientificName) {
+        // BÚSQUEDA DE IMÁGENES ASÍNCRONA (Fluida y en segundo plano)
+        async function fetchImageForBird(sciName, listImgId) {
+            if (imageCache[sciName]) {
+                applyImage(listImgId, imageCache[sciName]);
+                return;
+            }
             try {
-                const query = encodeURIComponent(scientificName.split(' ')[0]);
-                const res = await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(scientificName)}&prop=pageimages&format=json&pithumbsize=400&origin=*`);
+                const url = `https://es.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(sciName)}&gsrlimit=1&prop=pageimages&pithumbsize=400&format=json&origin=*`;
+                const res = await fetch(url);
                 const data = await res.json();
-                const pages = data.query.pages;
-                const pageId = Object.keys(pages)[0];
-                if (pages[pageId] && pages[pageId].thumbnail) return pages[pageId].thumbnail.source;
-            } catch (e) {}
-            return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; 
-        }
-
-        // --- SISTEMA DE HOTSPOTS EN RUTA ---
-        async function fetchHotspotBirds(locId) {
-            const container = document.getElementById(`hs-birds-${locId}`);
-            if(!container || container.innerHTML.includes('<li>')) return; 
-            
-            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando lista...';
-            try {
-                // Trae las últimas observaciones del hotspot
-                const res = await fetch(`https://api.ebird.org/v2/data/obs/hotspot/${locId}/recent?maxResults=5&sppLocale=es-CL`, {
-                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
-                });
-                const birds = await res.json();
                 
-                if(birds.length === 0) {
-                    container.innerHTML = "No hay registros recientes en este punto.";
-                    return;
+                if (data.query && data.query.pages) {
+                    const pageId = Object.keys(data.query.pages)[0];
+                    if (data.query.pages[pageId].thumbnail) {
+                        const imgSrc = data.query.pages[pageId].thumbnail.source;
+                        imageCache[sciName] = imgSrc;
+                        applyImage(listImgId, imgSrc);
+                        return;
+                    }
                 }
-                
-                let html = '<ul style="padding-left: 15px; margin-top: 8px;">';
-                birds.forEach(b => {
-                    html += `<li style="margin-bottom: 3px;"><b>${b.comName || b.sciName}</b> <span style="font-size:0.75rem; color:#9ca3af;">(${b.howMany || 'X'})</span></li>`;
-                });
-                html += '</ul>';
-                container.innerHTML = html;
-            } catch(e) { container.innerHTML = "Error cargando aves."; }
+            } catch(e) {}
+            // Si falla, pone un placeholder general
+            const fallback = 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80';
+            imageCache[sciName] = fallback;
+            applyImage(listImgId, fallback);
         }
 
-        async function findHotspotsAlongRoute(route) {
-            hotspotLayers.clearLayers();
-            const coords = route.coordinates;
-            // Toma el punto medio de la ruta trazada para buscar en ese radio
-            const midIndex = Math.floor(coords.length / 2);
-            const midPoint = coords[midIndex];
+        function applyImage(elementId, src) {
+            const el = document.getElementById(elementId);
+            if(el) {
+                el.src = src;
+                el.classList.remove('loading');
+            }
+        }
+
+        // GENERADOR DE POPUP DINÁMICO (Crea el HTML justo al tocar el marcador para asegurar la imagen)
+        function buildPopupHTML(bird) {
+            const imgUrl = imageCache[bird.sciName] || 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80';
             
-            try {
-                // Radio de 50km desde el centro de la ruta cubre trayectos medianos (ej. Temuco - Saavedra)
-                const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${midPoint.lat}&lng=${midPoint.lng}&fmt=json&dist=50`, {
-                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
-                });
-                const hotspots = await res.json();
-                
-                // Filtrar hotspots para dejar SOLO los que están cerca de la línea GPS dibujada (aprox < 3km)
-                const routeHotspots = hotspots.filter(hs => {
-                    return coords.some(c => {
-                        const dLat = (c.lat - hs.lat) * 111;
-                        const dLng = (c.lng - hs.lng) * 111 * Math.cos(hs.lat * Math.PI / 180);
-                        return Math.sqrt(dLat*dLat + dLng*dLng) < 3; // Radio de 3km desde el auto
-                    });
-                });
+            let timeString = "No especificada";
+            if (bird.obsDt && bird.obsDt.includes(' ')) {
+                let [hour, minute] = bird.obsDt.split(' ')[1].split(':');
+                let h = parseInt(hour, 10);
+                timeString = `${(h % 12 || 12).toString().padStart(2, '0')}:${minute} ${h >= 12 ? 'p.m.' : 'a.m.'}`;
+            }
 
-                routeHotspots.forEach(hs => {
-                    const icon = L.divIcon({
-                        html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
-                        className: 'hotspot-icon',
-                        iconSize: [30, 30]
-                    });
+            const waMsg = `🐦 ${bird.comName} (${bird.sciName})\n⚠️ Rareza\n📍 ${bird.locName}\n🕒 ${timeString}\n🔢 ${bird.howMany || 'X'} ejemplar(es)\n🗺️ https://www.google.com/maps?q=${bird.lat},${bird.lng}\n📋 https://ebird.org/checklist/${bird.subId}`;
+            const mapsLink = `https://www.google.com/maps/search/?api=1&query=${bird.lat},${bird.lng}`;
 
-                    const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
-                        <div style="padding:5px; width: 220px;">
-                            <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
-                            <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px;">${hs.locName}</p>
-                            <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
-                            <p style="font-size: 0.8rem; color: var(--brand-dark); font-weight: bold;">Aves comunes aquí:</p>
-                            <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563;">Toca para ver especies...</div>
+            return `
+                <div class="custom-popup">
+                    <img src="${imgUrl}" class="popup-img">
+                    <div class="popup-body">
+                        <h2 class="popup-title">${bird.comName}</h2>
+                        <p class="popup-sci">${bird.sciName}</p>
+                        <div class="popup-detail"><i class="fa-solid fa-location-dot"></i><span>${bird.locName}</span></div>
+                        <div class="popup-detail"><i class="fa-solid fa-user"></i><span>Avistado por: ${bird.userDisplayName || "Anónimo"}</span></div>
+                        <div class="popup-actions">
+                            <a href="https://wa.me/?text=${encodeURIComponent(waMsg)}" target="_blank" class="btn btn-wa"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
+                            <a href="https://ebird.org/checklist/${bird.subId}" target="_blank" class="btn btn-ebird"><i class="fa-solid fa-list"></i> eBird</a>
+                            <a href="${mapsLink}" target="_blank" class="btn btn-maps"><i class="fa-solid fa-location-arrow"></i> G. Maps</a>
+                            <button onclick="drawRoute(${bird.lat}, ${bird.lng})" class="btn btn-route"><i class="fa-solid fa-route"></i> Trazar ruta</button>
                         </div>
-                    `);
-                    
-                    marker.on('click', () => fetchHotspotBirds(hs.locId));
-                    hotspotLayers.addLayer(marker);
-                });
-                
-            } catch(e) { console.error("Error buscando hotspots:", e); }
+                    </div>
+                </div>`;
         }
-
-        window.drawRoute = function(lat, lng) {
-            if (!userLocation) { alert("Activa el GPS para trazar rutas."); return; }
-            if (routingControl) { map.removeControl(routingControl); }
-            
-            document.getElementById('ruta-placeholder').style.display = 'none';
-
-            routingControl = L.Routing.control({
-                waypoints: [userLocation, L.latLng(lat, lng)],
-                language: 'es',
-                lineOptions: { styles: [{color: '#f97316', weight: 5}] }
-            }).addTo(map);
-
-            routingControl.on('routeselected', function(e) {
-                const container = document.querySelector('.leaflet-routing-container');
-                if(container) document.getElementById('tab-ruta').appendChild(container);
-                
-                // Una vez trazada la ruta, dispara la búsqueda de humedales/hotspots
-                findHotspotsAlongRoute(e.route);
-            });
-
-            map.closePopup();
-            switchTab('ruta', document.querySelectorAll('.tab')[1]);
-            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.add('open');
-        };
 
         window.openMarker = function(id, lat, lng) {
             map.setView([lat, lng], 10);
@@ -341,127 +260,153 @@
             if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
         }
 
-        async function applyRegionMask(regionCode) {
-            if (maskLayer) map.removeLayer(maskLayer);
-            if (regionCode === 'ALL') {
-                map.setView([-38.7359, -72.5904], 5);
-                return;
-            }
-
-            const queryName = regionQueryNames[regionCode];
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?state=${encodeURIComponent(queryName)}&country=Chile&polygon_geojson=1&format=json`);
-                const data = await res.json();
-                
-                if (data.length > 0 && data[0].geojson) {
-                    const geojson = data[0].geojson;
-                    const worldBounds = [ [90, -360], [90, 360], [-90, 360], [-90, -360] ];
-                    const holes = [];
-
-                    if (geojson.type === 'Polygon') holes.push(geojson.coordinates[0].map(c => [c[1], c[0]]));
-                    else if (geojson.type === 'MultiPolygon') geojson.coordinates.forEach(poly => { holes.push(poly[0].map(c => [c[1], c[0]])); });
-
-                    maskLayer = L.polygon([worldBounds, ...holes], {
-                        color: '#388e3c', weight: 3, fillColor: '#000000', fillOpacity: 0.6
-                    }).addTo(map);
-
-                    const boundsLayer = L.geoJSON(geojson);
-                    map.fitBounds(boundsLayer.getBounds());
-                }
-            } catch(e) { console.error("Error difuminando región", e); }
+        // PÍLDORAS DINÁMICAS (Extrae los nombres reales de la data)
+        function generateDynamicPills(birdsData) {
+            const container = document.getElementById('dynamic-pills');
+            container.innerHTML = '<button class="pill active-pill" onclick="filterBySpecies(\'ALL\', this)">Todas</button>';
+            
+            // Extraer nombres comunes únicos
+            const uniqueNames = [...new Set(birdsData.map(b => b.comName))];
+            
+            uniqueNames.slice(0, 15).forEach(name => {
+                const btn = document.createElement('button');
+                btn.className = 'pill';
+                btn.textContent = name;
+                btn.onclick = function() { filterBySpecies(name, this); };
+                container.appendChild(btn);
+            });
         }
 
-        function renderBirds(birds) {
+        window.filterBySpecies = function(speciesName, btnElement) {
+            document.querySelectorAll('#dynamic-pills .pill').forEach(b => b.classList.remove('active-pill'));
+            if(btnElement) btnElement.classList.add('active-pill');
+
+            if(speciesName === 'ALL') {
+                renderBirdsAndMap(currentFilteredBirds);
+            } else {
+                renderBirdsAndMap(currentFilteredBirds.filter(b => b.comName === speciesName));
+            }
+        }
+
+        // RENDERIZADO AL INSTANTE
+        function renderBirdsAndMap(birdsToRender) {
             markerLayers.clearLayers();
             markers = {};
             const listContainer = document.getElementById('sightings-list');
             listContainer.innerHTML = ''; 
-            document.getElementById('rare-count').textContent = birds.length;
+            
+            // EL CONTADOR MUESTRA EL NÚMERO REAL
+            document.getElementById('rare-count').textContent = birdsToRender.length;
 
-            if(birds.length === 0) {
-                listContainer.innerHTML = '<div style="padding: 20px; text-align:center;">No hay avistamientos en esta región.</div>';
+            if(birdsToRender.length === 0) {
+                listContainer.innerHTML = '<div style="padding: 20px; text-align:center;">No hay rarezas registradas aquí.</div>';
                 return;
             }
 
-            birds.forEach((bird, i) => {
-                const lat = bird.lat; const lng = bird.lng;
-                const comName = bird.comName || "Ave no identificada";
-                const sciName = bird.sciName;
-                const locName = bird.locName;
-                const obsName = bird.userDisplayName || "Observador anónimo";
-                const subId = bird.subId;
-                const howMany = bird.howMany ? bird.howMany : "X";
-                const id = `marker_${subId}`;
+            birdsToRender.forEach((bird, i) => {
+                const id = `marker_${i}`;
+                const imgId = `img_list_${i}`;
 
-                let timeString = "No especificada";
-                if (bird.obsDt && bird.obsDt.includes(' ')) {
-                    const timePart = bird.obsDt.split(' ')[1];
-                    let [hour, minute] = timePart.split(':');
-                    let h = parseInt(hour, 10);
-                    const ampm = h >= 12 ? 'p.m.' : 'a.m.';
-                    timeString = `${(h % 12 || 12).toString().padStart(2, '0')}:${minute} ${ampm}`;
-                }
+                // Insertar HTML en la lista al instante con imagen por defecto de carga
+                const listItem = document.createElement('div');
+                listItem.className = 'list-item';
+                listItem.onclick = () => openMarker(id, bird.lat, bird.lng);
+                listItem.innerHTML = `
+                    <img src="${DEFAULT_IMG}" id="${imgId}" class="list-item-img loading">
+                    <div class="list-item-info">
+                        <div class="list-item-title">${bird.comName}</div>
+                        <div class="list-item-sci">${bird.sciName}</div>
+                        <div class="list-item-loc">${bird.locName.split(',')[0]}</div>
+                    </div>`;
+                listContainer.appendChild(listItem);
 
-                getWikipediaImage(sciName).then(imageUrl => {
-                    const waMessage = `🐦 ${comName} (${sciName})\n⚠️ Rareza en revisión\n📍 ${locName}\n🕒 ${timeString}\n🔢 ${howMany} ejemplar(es)\n👤 ${obsName}\n🗺️ https://www.google.com/maps?q=${lat},${lng}\n📋 https://ebird.org/checklist/${subId}`;
-                    const waTextEncoded = encodeURIComponent(waMessage);
-                    const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-                    
-                    const popupContent = `
-                        <div class="custom-popup">
-                            <img src="${imageUrl}" class="popup-img">
-                            <div class="popup-body">
-                                <h2 class="popup-title">${comName}</h2>
-                                <p class="popup-sci">${sciName}</p>
-                                <div class="popup-detail"><i class="fa-solid fa-location-dot"></i><span>${locName}</span></div>
-                                <div class="popup-detail"><i class="fa-solid fa-user"></i><span>Avistado por: ${obsName}</span></div>
-                                <div class="popup-actions">
-                                    <a href="https://wa.me/?text=${waTextEncoded}" target="_blank" class="btn btn-wa"><i class="fa-brands fa-whatsapp"></i> Compartir</a>
-                                    <a href="https://ebird.org/checklist/${subId}" target="_blank" class="btn btn-ebird"><i class="fa-solid fa-list"></i> eBird</a>
-                                    <a href="${mapsLink}" target="_blank" class="btn btn-maps"><i class="fa-solid fa-location-arrow"></i> G. Maps</a>
-                                    <button onclick="drawRoute(${lat}, ${lng})" class="btn btn-route"><i class="fa-solid fa-route"></i> Trazar ruta</button>
-                                </div>
-                            </div>
-                        </div>`;
+                // Crear Marcador
+                const marker = L.marker([bird.lat, bird.lng]);
+                
+                // Generar popup en el momento que el usuario haga click para asegurar que la imagen exista
+                marker.bindPopup(() => buildPopupHTML(bird));
+                
+                markers[id] = marker;
+                markerLayers.addLayer(marker);
 
-                    const marker = L.marker([lat, lng]).bindPopup(popupContent);
-                    markers[id] = marker;
-                    markerLayers.addLayer(marker);
-
-                    const listItem = document.createElement('div');
-                    listItem.className = 'list-item';
-                    listItem.onclick = () => openMarker(id, lat, lng);
-                    listItem.innerHTML = `
-                        <img src="${imageUrl}" class="list-item-img">
-                        <div class="list-item-info">
-                            <div class="list-item-title">${comName}</div>
-                            <div class="list-item-sci">${sciName}</div>
-                            <div class="list-item-loc">${locName.split(',')[0]}</div>
-                        </div>`;
-                    listContainer.appendChild(listItem);
-                });
+                // Desencadenar la búsqueda de imagen asíncrona
+                fetchImageForBird(bird.sciName, imgId);
             });
         }
 
-        window.filterRegion = function(regionCode) {
-            applyRegionMask(regionCode);
-            if (regionCode === 'ALL') renderBirds(allBirdsData);
-            else renderBirds(allBirdsData.filter(b => b.subnational1Code === regionCode));
-        };
+        // ELIMINACIÓN DE REPETICIONES
+        function processRawEBirdData(rawBirds) {
+            const seen = new Set();
+            const unique = [];
+            
+            rawBirds.forEach(b => {
+                if(!b.obsValid) return;
+                // Clave única: Lugar + Código de Especie (evita que la misma ave repetida por 10 personas salga 10 veces)
+                const key = b.locId + "_" + b.speciesCode;
+                if(!seen.has(key)) {
+                    seen.add(key);
+                    unique.push(b);
+                }
+            });
+            return unique;
+        }
 
-        async function fetchRareBirds() {
+        // INICIO: Carga de Datos
+        async function initData() {
             try {
-                const url = `https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`;
-                const response = await fetch(url, { headers: { 'X-eBirdApiToken': EBIRD_API_KEY } });
-                const birds = await response.json();
-                allBirdsData = birds.filter(b => b.obsValid === true);
-                renderBirds(allBirdsData);
+                const response = await fetch(`https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`, {
+                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                });
+                const rawBirds = await response.json();
+                
+                allUniqueBirds = processRawEBirdData(rawBirds);
+                currentFilteredBirds = allUniqueBirds;
+                
+                generateDynamicPills(allUniqueBirds);
+                renderBirdsAndMap(allUniqueBirds);
             } catch (error) {
-                document.getElementById('sightings-list').innerHTML = '<div style="padding: 20px; text-align:center;">Error cargando avistamientos.</div>';
+                document.getElementById('sightings-list').innerHTML = '<div style="padding: 20px; text-align:center;">Error cargando datos.</div>';
             }
         }
 
-        fetchRareBirds();
+        // LÓGICA DE FILTRADO POR REGIÓN
+        window.filterRegion = function(regionCode) {
+            document.querySelectorAll('#dynamic-pills .pill').forEach(b => b.classList.remove('active-pill'));
+            document.querySelector('#dynamic-pills .pill').classList.add('active-pill'); // Reset a "Todas"
+
+            if (regionCode === 'ALL') {
+                currentFilteredBirds = allUniqueBirds;
+                map.setView([-38.7359, -72.5904], 5);
+            } else {
+                currentFilteredBirds = allUniqueBirds.filter(b => b.subnational1Code === regionCode);
+            }
+            
+            generateDynamicPills(currentFilteredBirds);
+            renderBirdsAndMap(currentFilteredBirds);
+        };
+
+        // RUTAS
+        window.drawRoute = function(lat, lng) {
+            if (!userLocation) { alert("Activa el GPS."); return; }
+            if (routingControl) map.removeControl(routingControl);
+            document.getElementById('ruta-placeholder').style.display = 'none';
+
+            routingControl = L.Routing.control({
+                waypoints: [userLocation, L.latLng(lat, lng)], language: 'es',
+                lineOptions: { styles: [{color: '#f97316', weight: 5}] }
+            }).addTo(map);
+
+            routingControl.on('routeselected', function(e) {
+                const container = document.querySelector('.leaflet-routing-container');
+                if(container) document.getElementById('tab-ruta').appendChild(container);
+            });
+
+            map.closePopup();
+            switchTab('ruta', document.querySelectorAll('.tab')[1]);
+            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.add('open');
+        };
+
+        initData();
     </script>
 </body>
 </html>
