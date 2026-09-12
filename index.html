@@ -28,51 +28,18 @@
             --white: #ffffff;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Nunito', sans-serif;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            background: var(--bg-light);
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-light); }
 
         /* --- HEADER --- */
-        header {
-            background-color: var(--white);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            z-index: 2000;
-            position: relative;
-        }
-
+        header { background-color: var(--white); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 2000; position: relative; }
         .logo { display: flex; align-items: center; gap: 10px; }
         .logo img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
         .logo-text h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-dark); line-height: 1; }
         .logo-text span { font-size: 0.75rem; color: var(--text-gray); font-weight: 600; }
         
         .header-actions { display: flex; align-items: center; gap: 15px; }
-        
-        .location-select {
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid #ddd;
-            background: #f9fafb;
-            font-size: 0.9rem;
-            color: var(--text-dark);
-            outline: none;
-            max-width: 150px;
-        }
-
+        .location-select { padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: #f9fafb; font-size: 0.9rem; color: var(--text-dark); outline: none; max-width: 150px; }
         .icon-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-gray); cursor: pointer; }
 
         /* --- MAIN LAYOUT --- */
@@ -80,26 +47,11 @@
         #map { flex-grow: 1; height: 100%; z-index: 1; }
 
         /* --- SIDEBAR & TABS --- */
-        #sidebar {
-            width: 380px;
-            background: var(--white);
-            display: flex;
-            flex-direction: column;
-            box-shadow: -4px 0 15px rgba(0,0,0,0.05);
-            z-index: 1500;
-            transition: transform 0.3s ease;
-        }
-
+        #sidebar { width: 380px; background: var(--white); display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.05); z-index: 1500; transition: transform 0.3s ease; }
         .tabs { display: flex; padding: 15px 15px 5px; gap: 10px; border-bottom: 1px solid #f3f4f6; }
-        
-        .tab {
-            flex: 1; padding: 8px; border-radius: 20px; border: none;
-            background: var(--white); color: var(--text-gray);
-            font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
-        }
+        .tab { flex: 1; padding: 8px; border-radius: 20px; border: none; background: var(--white); color: var(--text-gray); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
         .tab.active { background: #e2e8f0; color: var(--text-dark); }
         .badge { background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: 5px; }
-
         .tab-content { display: none; flex-direction: column; flex: 1; overflow-y: auto; }
         .tab-content.active { display: flex; }
 
@@ -119,14 +71,8 @@
 
         /* Contenedor de Ruta Limpio */
         #tab-ruta { padding: 15px; }
-        .leaflet-routing-container {
-            background: transparent !important;
-            box-shadow: none !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .leaflet-right .leaflet-routing-container { display: none !important; } /* Ocultar del mapa */
+        .leaflet-routing-container { background: transparent !important; box-shadow: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+        .leaflet-right .leaflet-routing-container { display: none !important; }
 
         /* --- POPUP LEAFLET --- */
         .leaflet-popup-content-wrapper { padding: 0; border-radius: 12px; overflow: hidden; }
@@ -144,6 +90,18 @@
         .btn-ebird { background-color: var(--btn-ebird-bg); color: var(--btn-ebird-text); }
         .btn-maps { background-color: var(--btn-maps); grid-column: 1 / 2; }
         .btn-route { background-color: var(--btn-route); grid-column: 1 / 3; }
+
+        /* Icono de Hotspot */
+        .hotspot-icon {
+            background-color: var(--white);
+            border-radius: 50%;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #f59e0b;
+        }
 
         /* --- MOBILE --- */
         .mobile-menu-btn { display: none; }
@@ -198,7 +156,6 @@
                 <button class="tab" onclick="switchTab('ruta', this)"><i class="fa-solid fa-route"></i> Mi ruta</button>
             </div>
             
-            <!-- PESTAÑA RAREZAS -->
             <div id="tab-rarezas" class="tab-content active">
                 <div class="filter-pills">
                     <button class="pill">Zorzal</button>
@@ -212,26 +169,22 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA MI RUTA -->
             <div id="tab-ruta" class="tab-content">
                 <div style="text-align: center; color: var(--text-gray); margin-top: 20px;" id="ruta-placeholder">
                     <i class="fa-solid fa-map-location-dot" style="font-size: 2rem; margin-bottom: 10px; color: #ddd;"></i>
                     <p>Aún no hay ruta activa.</p>
-                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta aquí" en la tarjeta de un ave para iniciar.</p>
+                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta aquí" para iniciar, buscaremos los Hotspots en el camino.</p>
                 </div>
-                <!-- Las instrucciones de Leaflet Routing se inyectarán aquí -->
             </div>
         </aside>
     </div>
 
-    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     
     <script>
         const EBIRD_API_KEY = '89f4bf7f-47ac-4e68-949f-de69c890bce7';
         
-        // Mapa base cambiado a Esri (Nunca pide API Key, es gratuito y estable)
         const map = L.map('map', { zoomControl: false }).setView([-38.7359, -72.5904], 5);
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
@@ -243,10 +196,10 @@
         let userLocation = null;
         let markers = {}; 
         let markerLayers = L.layerGroup().addTo(map);
-        let allBirdsData = []; // Guardar todos los datos para filtrar localmente
-        let maskLayer = null; // Capa de difuminado
+        let hotspotLayers = L.layerGroup().addTo(map); // Capa nueva para hotspots de ruta
+        let allBirdsData = [];
+        let maskLayer = null;
 
-        // Nombres oficiales para buscar el polígono en OpenStreetMap
         const regionQueryNames = {
             'CL-AP': 'Región de Arica y Parinacota', 'CL-TA': 'Región de Tarapacá', 'CL-AN': 'Región de Antofagasta',
             'CL-AT': 'Región de Atacama', 'CL-CO': 'Región de Coquimbo', 'CL-VS': 'Región de Valparaíso',
@@ -258,7 +211,6 @@
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-        // Cambiar pestañas
         function switchTab(tabId, btnElement) {
             document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -284,7 +236,80 @@
             return 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80'; 
         }
 
-        // Trazar Ruta e inyectar instrucciones en la Pestaña "Mi ruta"
+        // --- SISTEMA DE HOTSPOTS EN RUTA ---
+        async function fetchHotspotBirds(locId) {
+            const container = document.getElementById(`hs-birds-${locId}`);
+            if(!container || container.innerHTML.includes('<li>')) return; 
+            
+            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando lista...';
+            try {
+                // Trae las últimas observaciones del hotspot
+                const res = await fetch(`https://api.ebird.org/v2/data/obs/hotspot/${locId}/recent?maxResults=5&sppLocale=es-CL`, {
+                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                });
+                const birds = await res.json();
+                
+                if(birds.length === 0) {
+                    container.innerHTML = "No hay registros recientes en este punto.";
+                    return;
+                }
+                
+                let html = '<ul style="padding-left: 15px; margin-top: 8px;">';
+                birds.forEach(b => {
+                    html += `<li style="margin-bottom: 3px;"><b>${b.comName || b.sciName}</b> <span style="font-size:0.75rem; color:#9ca3af;">(${b.howMany || 'X'})</span></li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            } catch(e) { container.innerHTML = "Error cargando aves."; }
+        }
+
+        async function findHotspotsAlongRoute(route) {
+            hotspotLayers.clearLayers();
+            const coords = route.coordinates;
+            // Toma el punto medio de la ruta trazada para buscar en ese radio
+            const midIndex = Math.floor(coords.length / 2);
+            const midPoint = coords[midIndex];
+            
+            try {
+                // Radio de 50km desde el centro de la ruta cubre trayectos medianos (ej. Temuco - Saavedra)
+                const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${midPoint.lat}&lng=${midPoint.lng}&fmt=json&dist=50`, {
+                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                });
+                const hotspots = await res.json();
+                
+                // Filtrar hotspots para dejar SOLO los que están cerca de la línea GPS dibujada (aprox < 3km)
+                const routeHotspots = hotspots.filter(hs => {
+                    return coords.some(c => {
+                        const dLat = (c.lat - hs.lat) * 111;
+                        const dLng = (c.lng - hs.lng) * 111 * Math.cos(hs.lat * Math.PI / 180);
+                        return Math.sqrt(dLat*dLat + dLng*dLng) < 3; // Radio de 3km desde el auto
+                    });
+                });
+
+                routeHotspots.forEach(hs => {
+                    const icon = L.divIcon({
+                        html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
+                        className: 'hotspot-icon',
+                        iconSize: [30, 30]
+                    });
+
+                    const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
+                        <div style="padding:5px; width: 220px;">
+                            <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
+                            <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px;">${hs.locName}</p>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
+                            <p style="font-size: 0.8rem; color: var(--brand-dark); font-weight: bold;">Aves comunes aquí:</p>
+                            <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563;">Toca para ver especies...</div>
+                        </div>
+                    `);
+                    
+                    marker.on('click', () => fetchHotspotBirds(hs.locId));
+                    hotspotLayers.addLayer(marker);
+                });
+                
+            } catch(e) { console.error("Error buscando hotspots:", e); }
+        }
+
         window.drawRoute = function(lat, lng) {
             if (!userLocation) { alert("Activa el GPS para trazar rutas."); return; }
             if (routingControl) { map.removeControl(routingControl); }
@@ -297,16 +322,16 @@
                 lineOptions: { styles: [{color: '#f97316', weight: 5}] }
             }).addTo(map);
 
-            // Mover el panel de rutas de Leaflet al Sidebar
             routingControl.on('routeselected', function(e) {
                 const container = document.querySelector('.leaflet-routing-container');
-                if(container) {
-                    document.getElementById('tab-ruta').appendChild(container);
-                }
+                if(container) document.getElementById('tab-ruta').appendChild(container);
+                
+                // Una vez trazada la ruta, dispara la búsqueda de humedales/hotspots
+                findHotspotsAlongRoute(e.route);
             });
 
             map.closePopup();
-            switchTab('ruta', document.querySelectorAll('.tab')[1]); // Cambiar a pestaña ruta
+            switchTab('ruta', document.querySelectorAll('.tab')[1]);
             if(window.innerWidth <= 768) document.getElementById('sidebar').classList.add('open');
         };
 
@@ -316,7 +341,6 @@
             if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
         }
 
-        // --- EFECTO FOCO: Difuminar regiones externas ---
         async function applyRegionMask(regionCode) {
             if (maskLayer) map.removeLayer(maskLayer);
             if (regionCode === 'ALL') {
@@ -326,40 +350,27 @@
 
             const queryName = regionQueryNames[regionCode];
             try {
-                // Consultar Polígono a Nominatim (OpenStreetMap)
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?state=${encodeURIComponent(queryName)}&country=Chile&polygon_geojson=1&format=json`);
                 const data = await res.json();
                 
                 if (data.length > 0 && data[0].geojson) {
                     const geojson = data[0].geojson;
-                    
-                    // Coordenadas del mundo entero para crear el fondo negro
                     const worldBounds = [ [90, -360], [90, 360], [-90, 360], [-90, -360] ];
                     const holes = [];
 
-                    // Crear el "agujero" con la forma de la región
-                    if (geojson.type === 'Polygon') {
-                        holes.push(geojson.coordinates[0].map(c => [c[1], c[0]]));
-                    } else if (geojson.type === 'MultiPolygon') {
-                        geojson.coordinates.forEach(poly => { holes.push(poly[0].map(c => [c[1], c[0]])); });
-                    }
+                    if (geojson.type === 'Polygon') holes.push(geojson.coordinates[0].map(c => [c[1], c[0]]));
+                    else if (geojson.type === 'MultiPolygon') geojson.coordinates.forEach(poly => { holes.push(poly[0].map(c => [c[1], c[0]])); });
 
-                    // Capa Invertida: Rellena el mundo de negro opaco al 50%, y deja transparente la región
                     maskLayer = L.polygon([worldBounds, ...holes], {
-                        color: '#388e3c', // Borde verde para la región
-                        weight: 3,
-                        fillColor: '#000000',
-                        fillOpacity: 0.6 // Nivel de difuminado
+                        color: '#388e3c', weight: 3, fillColor: '#000000', fillOpacity: 0.6
                     }).addTo(map);
 
-                    // Enfocar cámara en la región
                     const boundsLayer = L.geoJSON(geojson);
                     map.fitBounds(boundsLayer.getBounds());
                 }
             } catch(e) { console.error("Error difuminando región", e); }
         }
 
-        // --- RENDERIZAR LISTA Y MARCADORES ---
         function renderBirds(birds) {
             markerLayers.clearLayers();
             markers = {};
@@ -392,7 +403,6 @@
                 }
 
                 getWikipediaImage(sciName).then(imageUrl => {
-                    // WhatsApp Template
                     const waMessage = `🐦 ${comName} (${sciName})\n⚠️ Rareza en revisión\n📍 ${locName}\n🕒 ${timeString}\n🔢 ${howMany} ejemplar(es)\n👤 ${obsName}\n🗺️ https://www.google.com/maps?q=${lat},${lng}\n📋 https://ebird.org/checklist/${subId}`;
                     const waTextEncoded = encodeURIComponent(waMessage);
                     const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
@@ -433,33 +443,20 @@
             });
         }
 
-        // Filtro accionado por el Select
         window.filterRegion = function(regionCode) {
             applyRegionMask(regionCode);
-            if (regionCode === 'ALL') {
-                renderBirds(allBirdsData);
-            } else {
-                // Filtrar las aves usando el código de región de eBird (ej. CL-AR)
-                const filtered = allBirdsData.filter(b => b.subnational1Code === regionCode);
-                renderBirds(filtered);
-            }
+            if (regionCode === 'ALL') renderBirds(allBirdsData);
+            else renderBirds(allBirdsData.filter(b => b.subnational1Code === regionCode));
         };
 
-        // --- INICIALIZAR Y DESCARGAR DATOS ---
         async function fetchRareBirds() {
             try {
                 const url = `https://api.ebird.org/v2/data/obs/CL/recent/notable?detail=full&sppLocale=es-CL&back=14`;
                 const response = await fetch(url, { headers: { 'X-eBirdApiToken': EBIRD_API_KEY } });
                 const birds = await response.json();
-                
-                // Guardar en variable global solo las validadas
                 allBirdsData = birds.filter(b => b.obsValid === true);
-                
-                // Renderizar inicio (Todo Chile)
                 renderBirds(allBirdsData);
-
             } catch (error) {
-                console.error("Error eBird: ", error);
                 document.getElementById('sightings-list').innerHTML = '<div style="padding: 20px; text-align:center;">Error cargando avistamientos.</div>';
             }
         }
