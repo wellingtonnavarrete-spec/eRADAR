@@ -148,7 +148,7 @@
                 <div style="text-align: center; color: var(--text-gray); margin-top: 20px;" id="ruta-placeholder">
                     <i class="fa-solid fa-map-location-dot" style="font-size: 2rem; margin-bottom: 10px; color: #ddd;"></i>
                     <p>Aún no hay ruta activa.</p>
-                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta aquí" para iniciar, buscaremos los Hotspots en el camino.</p>
+                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta aquí" en alguna tarjeta. Al planificar tu viaje hacia la costa por humedales (como Nehuentue o Puerto Saavedra), se buscarán automáticamente paradas eBird en el camino para aprovechar ese 300mm.</p>
                 </div>
             </div>
         </aside>
@@ -173,6 +173,17 @@
         let allUniqueBirds = []; 
         let currentFilteredBirds = [];
         let imageCache = {}; 
+        let maskLayer = null;
+
+        // Regiones para el difuminado
+        const regionQueryNames = {
+            'CL-AP': 'Región de Arica y Parinacota', 'CL-TA': 'Región de Tarapacá', 'CL-AN': 'Región de Antofagasta',
+            'CL-AT': 'Región de Atacama', 'CL-CO': 'Región de Coquimbo', 'CL-VS': 'Región de Valparaíso',
+            'CL-RM': 'Región Metropolitana de Santiago', 'CL-LI': "Región del Libertador General Bernardo O'Higgins",
+            'CL-ML': 'Región del Maule', 'CL-NB': 'Región de Ñuble', 'CL-BI': 'Región del Biobío',
+            'CL-AR': 'Región de la Araucanía', 'CL-LR': 'Región de Los Ríos', 'CL-LL': 'Región de Los Lagos',
+            'CL-AI': 'Región Aysén del General Carlos Ibáñez del Campo', 'CL-MA': 'Región de Magallanes y de la Antártica Chilena'
+        };
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function switchTab(tabId, btn) {
@@ -185,12 +196,12 @@
             navigator.geolocation.getCurrentPosition(pos => userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude));
         }
 
-        // --- SISTEMA DE HOTSPOTS ---
-        async function fetchHotspotBirds(locId) {
+        // --- SISTEMA RESTAURADO Y MEJORADO DE HOTSPOTS EN RUTA ---
+        window.fetchHotspotBirds = async function(locId) {
             const container = document.getElementById(`hs-birds-${locId}`);
-            if(!container || container.innerHTML.includes('<li>')) return; 
+            if(!container) return; 
             
-            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando lista...';
+            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando aves...';
             try {
                 const url = `https://api.ebird.org/v2/data/obs/${locId}/recent?maxResults=5&sppLocale=es-CL`;
                 const res = await fetch(url, { headers: { 'X-eBirdApiToken': EBIRD_API_KEY } });
@@ -208,50 +219,100 @@
                 });
                 html += '</ul>';
                 container.innerHTML = html;
-            } catch(e) { container.innerHTML = "<span style='color:red;'>No se pudo cargar la lista.</span>"; }
+            } catch(e) { container.innerHTML = "<span style='color:red;'>Error al cargar.</span>"; }
         }
 
         async function findHotspotsAlongRoute(route) {
             hotspotLayers.clearLayers();
             const coords = route.coordinates;
-            const midIndex = Math.floor(coords.length / 2);
-            const midPoint = coords[midIndex];
+            
+            // Toma 3 puntos estratégicos (Inicio, Medio, Fin) para asegurar que rutas largas queden cubiertas
+            const samples = [
+                coords[0],
+                coords[Math.floor(coords.length / 2)],
+                coords[coords.length - 1]
+            ];
+            
+            let allHotspots = [];
+            let seenHs = new Set();
+
+            for (let pt of samples) {
+                try {
+                    const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${pt.lat}&lng=${pt.lng}&fmt=json&dist=50`, {
+                        headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
+                    });
+                    if(res.ok) {
+                        const data = await res.json();
+                        data.forEach(hs => {
+                            if(!seenHs.has(hs.locId)) { 
+                                seenHs.add(hs.locId); 
+                                allHotspots.push(hs); 
+                            }
+                        });
+                    }
+                } catch(e) { console.error("Error en barrido de hotspots", e); }
+            }
+            
+            // Filtra solo los que están a un máximo de 4km de la línea de la ruta
+            const routeHotspots = allHotspots.filter(hs => {
+                return coords.some(c => {
+                    const dLat = (c.lat - hs.lat) * 111;
+                    const dLng = (c.lng - hs.lng) * 111 * Math.cos(hs.lat * Math.PI / 180);
+                    return Math.sqrt(dLat*dLat + dLng*dLng) < 4; 
+                });
+            });
+
+            routeHotspots.forEach(hs => {
+                const icon = L.divIcon({
+                    html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
+                    className: 'hotspot-icon',
+                    iconSize: [30, 30]
+                });
+
+                const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
+                    <div style="padding:5px; width: 230px;">
+                        <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
+                        <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px;">${hs.locName}</p>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
+                        <p style="font-size: 0.8rem; color: var(--brand-dark); font-weight: bold;">Aves avistadas aquí:</p>
+                        <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563; margin-top: 5px;"></div>
+                    </div>
+                `);
+                
+                // Cargar aves automáticamente al abrir la tarjeta del Hotspot
+                marker.on('popupopen', () => fetchHotspotBirds(hs.locId));
+                hotspotLayers.addLayer(marker);
+            });
+        }
+
+        // --- SISTEMA RESTAURADO DE DIFUMINADO DE REGIONES ---
+        async function applyRegionMask(regionCode) {
+            if (maskLayer) map.removeLayer(maskLayer);
+            if (regionCode === 'ALL') return;
+
+            const queryName = regionQueryNames[regionCode];
+            if(!queryName) return;
             
             try {
-                const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/geo?lat=${midPoint.lat}&lng=${midPoint.lng}&fmt=json&dist=50`, {
-                    headers: { 'X-eBirdApiToken': EBIRD_API_KEY }
-                });
-                const hotspots = await res.json();
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?state=${encodeURIComponent(queryName)}&country=Chile&polygon_geojson=1&format=json`);
+                const data = await res.json();
                 
-                const routeHotspots = hotspots.filter(hs => {
-                    return coords.some(c => {
-                        const dLat = (c.lat - hs.lat) * 111;
-                        const dLng = (c.lng - hs.lng) * 111 * Math.cos(hs.lat * Math.PI / 180);
-                        return Math.sqrt(dLat*dLat + dLng*dLng) < 3; 
-                    });
-                });
+                if (data.length > 0 && data[0].geojson) {
+                    const geojson = data[0].geojson;
+                    const worldBounds = [ [90, -360], [90, 360], [-90, 360], [-90, -360] ];
+                    const holes = [];
 
-                routeHotspots.forEach(hs => {
-                    const icon = L.divIcon({
-                        html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
-                        className: 'hotspot-icon',
-                        iconSize: [30, 30]
-                    });
+                    if (geojson.type === 'Polygon') holes.push(geojson.coordinates[0].map(c => [c[1], c[0]]));
+                    else if (geojson.type === 'MultiPolygon') geojson.coordinates.forEach(poly => { holes.push(poly[0].map(c => [c[1], c[0]])); });
 
-                    const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
-                        <div style="padding:5px; width: 230px;">
-                            <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
-                            <p style="font-size: 0.85rem; font-weight: bold; color: var(--text-dark); margin-bottom: 5px;">${hs.locName}</p>
-                            <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
-                            <p style="font-size: 0.8rem; color: var(--brand-dark); font-weight: bold;">Aves avistadas aquí:</p>
-                            <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563; margin-top: 5px;">Toca para cargar especies...</div>
-                        </div>
-                    `);
-                    
-                    marker.on('click', () => fetchHotspotBirds(hs.locId));
-                    hotspotLayers.addLayer(marker);
-                });
-            } catch(e) { console.error("Error buscando hotspots:", e); }
+                    maskLayer = L.polygon([worldBounds, ...holes], {
+                        color: '#388e3c', weight: 3, fillColor: '#000000', fillOpacity: 0.6
+                    }).addTo(map);
+
+                    const boundsLayer = L.geoJSON(geojson);
+                    map.fitBounds(boundsLayer.getBounds());
+                }
+            } catch(e) { console.error("Error difuminando región", e); }
         }
 
         // --- SISTEMA IMÁGENES ASÍNCRONAS ---
@@ -379,15 +440,13 @@
             });
         }
 
-        // --- LA SOLUCIÓN ESTRICTA PARA LAS REPETICIONES ---
         function processRawEBirdData(rawBirds) {
             const seen = new Set();
             const unique = [];
             rawBirds.forEach(b => {
                 if(!b.obsValid) return;
                 
-                // AQUÍ ESTÁ EL CAMBIO: La llave única es SOLO EL CÓDIGO DEL AVE.
-                // Esto garantiza que el "Mirlo de pico corto" u otro solo se agregue una vez.
+                // Llave única basada estrictamente en el código de especie para evitar duplicados
                 const key = b.speciesCode; 
                 
                 if(!seen.has(key)) { 
@@ -417,9 +476,11 @@
             document.querySelectorAll('#dynamic-pills .pill').forEach(b => b.classList.remove('active-pill'));
             document.querySelector('#dynamic-pills .pill').classList.add('active-pill');
 
+            applyRegionMask(regionCode);
+
             if (regionCode === 'ALL') {
                 currentFilteredBirds = allUniqueBirds;
-                map.setView([-38.7359, -72.5904], 5);
+                if(!maskLayer) map.setView([-38.7359, -72.5904], 5);
             } else {
                 currentFilteredBirds = allUniqueBirds.filter(b => b.subnational1Code === regionCode);
             }
@@ -430,8 +491,11 @@
 
         window.drawRoute = function(lat, lng) {
             if (!userLocation) { alert("Activa el GPS."); return; }
+            
+            const placeholder = document.getElementById('ruta-placeholder');
+            if(placeholder) placeholder.style.display = 'none';
+
             if (routingControl) map.removeControl(routingControl);
-            document.getElementById('ruta-placeholder').style.display = 'none';
 
             routingControl = L.Routing.control({
                 waypoints: [userLocation, L.latLng(lat, lng)], language: 'es',
@@ -442,6 +506,7 @@
                 const container = document.querySelector('.leaflet-routing-container');
                 if(container) document.getElementById('tab-ruta').appendChild(container);
                 
+                // DISPARA LA BÚSQUEDA DE HOTSPOTS AL CALCULAR LA RUTA
                 findHotspotsAlongRoute(e.route);
             });
 
