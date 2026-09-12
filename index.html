@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interactivo - Rarezas eBird Chile</title>
+    <title>eBird Radar - Chile</title>
     
     <!-- Librería Leaflet para el Mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,229 +11,302 @@
 
     <style>
         :root {
-            --bg-color: #f2f5f3;
-            --text-dark: #103323; 
+            --primary: #143d29; /* Verde oscuro editorial */
             --accent: #27ae60;
+            --text-dark: #111;
+            --text-muted: #666;
+            --bg-glass: rgba(255, 255, 255, 0.85);
         }
 
-        body { 
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: var(--bg-color); 
+            overflow: hidden; /* Evita barras de desplazamiento */
         }
 
-        .contenedor { max-width: 900px; margin: 0 auto; }
-
-        .panel-control { 
-            background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 10px; align-items: center;
+        /* --- MAPA A PANTALLA COMPLETA --- */
+        #mapa { 
+            position: absolute; top: 0; left: 0; 
+            width: 100%; height: 100%; z-index: 1; 
+            background-color: #000; /* Fondo negro mientras carga */
         }
-        input[type="password"] { padding: 10px; width: 100%; max-width: 300px; border: 1px solid #ccc; border-radius: 8px; }
+
+        /* --- BOTÓN PARA ABRIR/CERRAR PANEL --- */
+        .btn-toggle {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: white; border: none; border-radius: 50%;
+            width: 45px; height: 45px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; transition: 0.3s;
+        }
+        .btn-toggle:hover { background: #f0f0f0; transform: scale(1.05); }
+
+        /* --- PANEL FLOTANTE DESLIZABLE --- */
+        #panel-flotante {
+            position: absolute; top: 20px; left: 80px; z-index: 1000;
+            width: 320px; background: var(--bg-glass);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px; padding: 25px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.5);
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s;
+        }
+
+        /* Clase que esconde el panel moviéndolo fuera de la pantalla */
+        .panel-oculto { transform: translateX(-150%); opacity: 0; pointer-events: none; }
+
+        h2 { margin: 0 0 15px 0; color: var(--primary); font-size: 22px; display: flex; align-items: center; gap: 8px;}
         
+        .grupo-input { margin-bottom: 20px; }
+        .grupo-input label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;}
+        input[type="password"] { 
+            width: 100%; padding: 12px; box-sizing: border-box;
+            border: 1px solid #ddd; border-radius: 10px; background: rgba(255,255,255,0.9);
+            font-size: 14px; outline: none; transition: 0.2s;
+        }
+        input[type="password"]:focus { border-color: var(--accent); }
+
         #estado {
-            background-color: var(--text-dark);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 500;
-            text-align: center;
-            margin-bottom: 20px;
+            background: var(--primary); color: white; padding: 12px 15px;
+            border-radius: 10px; font-size: 14px; text-align: center;
+            font-weight: 500; margin-bottom: 20px; line-height: 1.4;
         }
 
-        #mapa { height: 600px; width: 100%; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1; }
+        /* --- ESTADÍSTICAS EN CUADRÍCULA --- */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .tarjeta {
+            background: white; padding: 15px; border-radius: 12px;
+            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .tarjeta-numero { font-size: 28px; font-weight: 800; color: var(--primary); margin: 0 0 5px 0; line-height: 1; }
+        .tarjeta-titulo { font-size: 11px; color: var(--text-muted); margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;}
 
-        /* --- ESTILOS DE LA TARJETA POPUP DEL AVE --- */
-        .leaflet-popup-content-wrapper { padding: 0; border-radius: 12px; overflow: hidden; }
+        /* --- BOTÓN REINICIAR MAPA --- */
+        .btn-reiniciar {
+            position: absolute; bottom: 30px; right: 30px; z-index: 1000;
+            background: white; border: none; padding: 12px 20px;
+            border-radius: 30px; font-weight: bold; color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s;
+        }
+        .btn-reiniciar:hover { background: var(--primary); color: white; }
+
+        /* --- ESTILOS DEL POPUP (TARJETA DE AVE) --- */
+        .leaflet-popup-content-wrapper { padding: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .leaflet-popup-content { margin: 0; width: 280px !important; }
-        
-        .tarjeta-popup img { width: 100%; height: 180px; object-fit: cover; border-bottom: 3px solid var(--text-dark); }
-        .tarjeta-popup h3 { margin: 12px 15px 2px; color: var(--text-dark); font-size: 18px; }
-        .tarjeta-popup i { margin: 0 15px; color: #7b8580; font-size: 13px; display: block; }
-        .tarjeta-popup .datos { padding: 10px 15px; font-size: 13px; color: #333; line-height: 1.5; }
-        .tarjeta-popup .datos p { margin: 5px 0; }
-        
+        .tarjeta-popup img { width: 100%; height: 180px; object-fit: cover; }
+        .tarjeta-popup .contenido { padding: 15px; }
+        .tarjeta-popup h3 { margin: 0 0 2px; color: var(--primary); font-size: 18px; }
+        .tarjeta-popup i { color: #888; font-size: 13px; display: block; margin-bottom: 10px; }
+        .tarjeta-popup p { margin: 4px 0; font-size: 13px; color: #444; }
         .btn-ebird { 
-            display: block; background: var(--text-dark); color: white !important; 
+            display: block; background: var(--primary); color: white !important; 
             text-align: center; text-decoration: none; padding: 10px; 
-            font-weight: bold; margin: 10px 15px 15px; border-radius: 6px; transition: 0.2s;
+            font-weight: bold; margin-top: 15px; border-radius: 8px; transition: 0.2s;
         }
         .btn-ebird:hover { background: var(--accent); }
+
     </style>
 </head>
 <body>
 
-    <div class="contenedor">
-        <div class="panel-control">
-            <input type="password" id="inputApiKey" placeholder="1. Pega tu API Key de eBird aquí">
+    <!-- Contenedor del Mapa -->
+    <div id="mapa"></div>
+
+    <!-- Botón Hamburguesa -->
+    <button class="btn-toggle" onclick="togglePanel()">☰</button>
+
+    <!-- Botón Volver a Chile -->
+    <button class="btn-reiniciar" onclick="centrarChile()">🌎 Ver todo Chile</button>
+
+    <!-- Panel Flotante -->
+    <div id="panel-flotante">
+        <h2>🦅 eRadar Chile</h2>
+        
+        <div class="grupo-input">
+            <label>API Key de eBird</label>
+            <input type="password" id="inputApiKey" placeholder="Pega tu código aquí" onchange="guardarLlave()">
         </div>
         
-        <div id="estado">🗺️ Toca una región en el mapa para cargar sus aves raras...</div>
+        <div id="estado">Selecciona una región en el mapa para iniciar.</div>
 
-        <div id="mapa"></div>
+        <div class="dashboard-grid">
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-rareza">0</p>
+                <p class="tarjeta-titulo">Rarezas</p>
+            </div>
+            <div class="tarjeta">
+                <p class="tarjeta-numero" id="val-tiempo">Hoy</p>
+                <p class="tarjeta-titulo">Filtro</p>
+            </div>
+        </div>
     </div>
 
     <script>
         let mapa, capaRegiones;
         let marcadoresAves = [];
+        const CENTRO_CHILE = [-35.6, -71.5];
+        const ZOOM_INICIAL = 5;
 
-        // 1. Inicializar Mapa
         document.addEventListener("DOMContentLoaded", () => {
-            mapa = L.map('mapa').setView([-35.6, -71.5], 5); 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
+            // Cargar API Key guardada
+            const llaveGuardada = localStorage.getItem('ebird_apikey_chile');
+            if(llaveGuardada) {
+                document.getElementById('inputApiKey').value = llaveGuardada;
+            }
+
+            // Inicializar mapa
+            mapa = L.map('mapa', { zoomControl: false }).setView(CENTRO_CHILE, ZOOM_INICIAL); 
+            L.control.zoom({ position: 'topright' }).addTo(mapa);
+            
+            // Mapa base claro (CartoDB Positron) para resaltar los datos
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors © CARTO'
             }).addTo(mapa);
 
             cargarPoligonosChile();
         });
 
-        // 2. Cargar las fronteras de las regiones (GeoJSON público)
+        function togglePanel() {
+            document.getElementById('panel-flotante').classList.toggle('panel-oculto');
+        }
+
+        function centrarChile() {
+            mapa.flyTo(CENTRO_CHILE, ZOOM_INICIAL, { duration: 1.5 });
+            if (capaRegiones) {
+                capaRegiones.setStyle({ color: '#2c3e50', weight: 1, fillOpacity: 0.05, fillColor: '#2c3e50' });
+            }
+            marcadoresAves.forEach(m => mapa.removeLayer(m));
+            document.getElementById('val-rareza').innerText = "0";
+            document.getElementById('estado').innerText = "Selecciona una región en el mapa para iniciar.";
+        }
+
+        function guardarLlave() {
+            const llave = document.getElementById('inputApiKey').value.trim();
+            localStorage.setItem('ebird_apikey_chile', llave);
+        }
+
         async function cargarPoligonosChile() {
             try {
                 const res = await fetch('https://raw.githubusercontent.com/fcortes/Chile-GeoJSON/master/Regional.geojson');
                 const data = await res.json();
 
                 capaRegiones = L.geoJSON(data, {
-                    style: { color: '#34495e', weight: 1, fillOpacity: 0.1, fillColor: '#34495e' },
+                    style: { color: '#2c3e50', weight: 1, fillOpacity: 0.05, fillColor: '#2c3e50' },
                     onEachFeature: (feature, layer) => {
                         layer.on('click', () => interactuarConRegion(feature, layer));
                     }
                 }).addTo(mapa);
             } catch (error) {
-                console.error("Error al cargar mapa de regiones", error);
+                console.error("Error al cargar mapa", error);
             }
         }
 
-        // 3. Lógica visual al hacer clic en una región (Ej: La Araucanía)
         function interactuarConRegion(feature, layer) {
             const apiKey = document.getElementById('inputApiKey').value.trim();
             if (!apiKey) {
-                alert("Por favor, pon tu API Key arriba antes de tocar el mapa.");
+                alert("Por favor, ingresa tu API Key en el panel.");
+                document.getElementById('panel-flotante').classList.remove('panel-oculto');
                 return;
             }
-
-            // A) Oscurecer TODAS las regiones (Efecto opaco)
-            capaRegiones.setStyle({ color: '#000', weight: 0.5, fillOpacity: 0.75, fillColor: '#000' });
             
-            // B) Iluminar SOLO la región clickeada
+            guardarLlave(); // Asegura guardar si no lo hizo antes
+
+            // Estética de las regiones
+            capaRegiones.setStyle({ color: '#000', weight: 0.5, fillOpacity: 0.8, fillColor: '#05110c' });
             layer.setStyle({ color: '#27ae60', weight: 3, fillOpacity: 0 });
             
-            // C) Acercamiento suave a la región (Zoom)
             mapa.flyToBounds(layer.getBounds(), { padding: [20, 20], duration: 1.2 });
 
-            // D) Traducir nombre del mapa a código eBird y buscar
             const nombreMapa = feature.properties.Region || feature.properties.NOM_REG;
             const codigoEbird = obtenerCodigoEbird(nombreMapa);
             
             if (codigoEbird) {
-                document.getElementById('estado').innerText = `Buscando rarezas en ${nombreMapa}...`;
+                document.getElementById('estado').innerText = `Rastreando satélite en ${nombreMapa}...`;
                 cargarRarezas(codigoEbird, apiKey);
+                
+                // Si estás en móvil, oculta el panel al hacer clic para ver el mapa
+                if(window.innerWidth < 768) togglePanel();
             }
         }
 
-        // 4. Buscar rarezas en eBird
         async function cargarRarezas(codigoRegion, apiKey) {
-            // detail=full nos da el nombre del observador y los comentarios
-            const url = `https://api.ebird.org/v2/data/obs/${codigoRegion}/recent/notable?detail=full&sppLocale=es-CL`;
+            const url = `https://api.ebird.org/v2/data/obs/${codigoRegion}/recent/notable?detail=full&sppLocale=es-CL&back=3`; // Últimos 3 días para no saturar
 
             try {
                 const respuesta = await fetch(url, { headers: { 'X-eBirdApiToken': apiKey } });
-                if (!respuesta.ok) throw new Error("Error con la API Key o eBird.");
+                if (!respuesta.ok) throw new Error("Llave inválida o error en eBird.");
                 
                 const aves = await respuesta.json();
-                document.getElementById('estado').innerText = `🚨 Se encontraron ${aves.length} avistamientos notables en esta región.`;
+                document.getElementById('estado').innerText = `Se detectaron ${aves.length} rarezas en los últimos 3 días.`;
+                document.getElementById('val-rareza').innerText = aves.length;
                 dibujarMarcadores(aves);
             } catch (error) {
                 document.getElementById('estado').innerText = `Error: ${error.message}`;
             }
         }
 
-        // 5. Dibujar los pines y armar la tarjeta
         function dibujarMarcadores(aves) {
-            marcadoresAves.forEach(m => mapa.removeLayer(m)); // Limpiar anteriores
+            marcadoresAves.forEach(m => mapa.removeLayer(m));
             marcadoresAves = [];
 
-            // Usar un pin rojo para las rarezas
-            const iconoRojo = L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            const iconoAstro = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                 iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
             });
 
             aves.forEach(ave => {
                 if(ave.lat && ave.lng) {
-                    const marcador = L.marker([ave.lat, ave.lng], {icon: iconoRojo}).addTo(mapa);
+                    const marcador = L.marker([ave.lat, ave.lng], {icon: iconoAstro}).addTo(mapa);
                     
                     marcador.on('click', async function(e) {
-                        // Mensaje de carga mientras buscamos la foto en Wikipedia
                         const popupCarga = L.popup().setLatLng(e.latlng)
-                            .setContent('<div style="padding:20px; text-align:center;">Buscando foto en Wikipedia... 🦅</div>')
+                            .setContent('<div style="padding:20px; text-align:center;">Analizando especie... 🦅</div>')
                             .openOn(mapa);
                         
                         const fotoUrl = await buscarFotoWiki(ave.sciName);
+                        const obs = ave.userDisplayName || 'Anónimo';
+                        const loc = ave.locName;
+                        const fechaFormat = ave.obsDt ? ave.obsDt.split(' ')[0] : '';
                         
-                        const observador = ave.userDisplayName || 'Pajarero Anónimo';
-                        const comentario = ave.comments ? `"${ave.comments}"` : 'Sin comentarios del observador.';
-                        
-                        const htmlTarjeta = `
+                        const html = `
                             <div class="tarjeta-popup">
-                                <img src="${fotoUrl}" alt="Foto de ${ave.comName}">
-                                <h3>${ave.comName}</h3>
-                                <i>${ave.sciName}</i>
-                                <div class="datos">
-                                    <p><strong>👤 Por:</strong> ${observador}</p>
-                                    <p><strong>📍 Lugar:</strong> ${ave.locName}</p>
-                                    <p><strong>📝 Nota:</strong> ${comentario}</p>
+                                <img src="${fotoUrl}">
+                                <div class="contenido">
+                                    <h3>${ave.comName}</h3>
+                                    <i>${ave.sciName}</i>
+                                    <p><strong>📍 Lugar:</strong> ${loc}</p>
+                                    <p><strong>🕒 Visto:</strong> ${fechaFormat}</p>
+                                    <p><strong>👤 Por:</strong> ${obs}</p>
+                                    <a href="https://ebird.org/checklist/${ave.subId}" target="_blank" class="btn-ebird">Ver Check-list</a>
                                 </div>
-                                <a href="https://ebird.org/checklist/${ave.subId}" target="_blank" class="btn-ebird">Ver lista en eBird</a>
                             </div>
                         `;
-                        popupCarga.setContent(htmlTarjeta);
+                        popupCarga.setContent(html);
                     });
-
                     marcadoresAves.push(marcador);
                 }
             });
         }
 
-        // 6. Buscador automático de fotos (API Wikipedia)
         async function buscarFotoWiki(nombreCientifico) {
             try {
-                // Busca primero en la wiki en español (suele ser muy precisa taxonómicamente)
                 let res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(nombreCientifico)}`);
                 let data = await res.json();
                 if (data.thumbnail && data.thumbnail.source) return data.thumbnail.source;
 
-                // Fallback a la wiki en inglés si no existe
                 res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(nombreCientifico)}`);
                 data = await res.json();
                 if (data.thumbnail && data.thumbnail.source) return data.thumbnail.source;
-            } catch (e) {
-                console.error("Error buscando foto", e);
-            }
-            // Si no hay foto, devuelve una genérica de naturaleza (Unsplash)
+            } catch (e) { }
             return 'https://images.unsplash.com/photo-1552728089-57156f5222cb?q=80&w=400&auto=format&fit=crop';
         }
 
-        // 7. Traductor de GeoJSON a Códigos de eBird
-        function obtenerCodigoEbird(nombreMapa) {
-            const n = (nombreMapa || '').toLowerCase();
-            if (n.includes("arica")) return "CL-AP";
-            if (n.includes("tarapac")) return "CL-TA";
-            if (n.includes("antofagasta")) return "CL-AN";
-            if (n.includes("atacama")) return "CL-AT";
-            if (n.includes("coquimbo")) return "CL-CO";
-            if (n.includes("valpara")) return "CL-VS";
-            if (n.includes("metropolitana") || n.includes("santiago")) return "CL-RM";
-            if (n.includes("higgins") || n.includes("libertador")) return "CL-LI";
-            if (n.includes("maule")) return "CL-ML";
-            if (n.includes("nuble") || n.includes("ñuble")) return "CL-NB";
-            if (n.includes("bio") || n.includes("bío")) return "CL-BI";
-            if (n.includes("araucan")) return "CL-AR";
-            if (n.includes("ríos") || n.includes("rios")) return "CL-LR";
-            if (n.includes("lagos")) return "CL-LL";
-            if (n.includes("aysen") || n.includes("aisén")) return "CL-AI";
-            if (n.includes("magallanes") || n.includes("antártica")) return "CL-MA";
+        function obtenerCodigoEbird(nombre) {
+            const n = (nombre || '').toLowerCase();
+            const mapaCodigos = { "arica": "CL-AP", "tarapac": "CL-TA", "antofagasta": "CL-AN", "atacama": "CL-AT", "coquimbo": "CL-CO", "valpara": "CL-VS", "metropolitana": "CL-RM", "santiago": "CL-RM", "higgins": "CL-LI", "libertador": "CL-LI", "maule": "CL-ML", "nuble": "CL-NB", "ñuble": "CL-NB", "bio": "CL-BI", "bío": "CL-BI", "araucan": "CL-AR", "ríos": "CL-LR", "rios": "CL-LR", "lagos": "CL-LL", "aysen": "CL-AI", "aisén": "CL-AI", "magallanes": "CL-MA", "antártica": "CL-MA" };
+            for (const key in mapaCodigos) if (n.includes(key)) return mapaCodigos[key];
             return null;
         }
     </script>
