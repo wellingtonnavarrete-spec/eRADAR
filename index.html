@@ -14,7 +14,7 @@
         :root {
             --brand-dark: #2e7d32; --brand-green: #388e3c; --btn-whatsapp: #2dd4bf; 
             --btn-ebird-bg: #2b7a3b; --btn-ebird-text: #0ea5e9; --btn-maps: #3b82f6;
-            --btn-route: #f97316; --text-dark: #1f2937; --text-gray: #6b7280;
+            --btn-route: #1a73e8; /* Color azul estilo Maps */ --text-dark: #1f2937; --text-gray: #6b7280;
             --bg-light: #f3f4f6; --white: #ffffff;
         }
 
@@ -86,6 +86,22 @@
 
         .hotspot-icon { background-color: var(--white); border-radius: 50%; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; border: 2px solid #f59e0b; cursor: pointer; }
 
+        /* --- BURBUJA DE MAPS --- */
+        .maps-pill-container { display: flex; justify-content: center; align-items: center; overflow: visible; }
+        .maps-summary-pill {
+            background-color: var(--btn-route); 
+            color: white; padding: 8px 16px; border-radius: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-align: center; 
+            white-space: nowrap; position: relative;
+        }
+        .maps-summary-pill::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; 
+            transform: translateX(-50%); border-width: 8px 8px 0; 
+            border-style: solid; border-color: var(--btn-route) transparent transparent transparent;
+        }
+        .maps-time { display: block; font-weight: 800; font-size: 1.15rem; line-height: 1.1; }
+        .maps-dist { display: block; font-size: 0.8rem; font-weight: 600; color: #e8f0fe; margin-top: 3px; }
+
         /* MOBILE */
         .mobile-menu-btn { display: none; }
         @media (max-width: 768px) {
@@ -135,9 +151,7 @@
             </div>
             
             <div id="tab-rarezas" class="tab-content active">
-                <div class="filter-pills" id="dynamic-pills">
-                    <!-- Las píldoras dinámicas se generan aquí -->
-                </div>
+                <div class="filter-pills" id="dynamic-pills"></div>
                 <div class="list-header">Especies Únicas Recientes</div>
                 <div class="sightings-list" id="sightings-list">
                     <div style="padding: 20px; text-align: center; color: #9ca3af;"><i class="fa-solid fa-circle-notch fa-spin"></i> Cargando aves raras...</div>
@@ -148,7 +162,7 @@
                 <div style="text-align: center; color: var(--text-gray); margin-top: 20px;" id="ruta-placeholder">
                     <i class="fa-solid fa-map-location-dot" style="font-size: 2rem; margin-bottom: 10px; color: #ddd;"></i>
                     <p>Aún no hay ruta activa.</p>
-                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta aquí" en alguna tarjeta. Al planificar tu viaje hacia la costa por humedales (como Nehuentue o Puerto Saavedra), se buscarán automáticamente paradas eBird en el camino para aprovechar ese 300mm.</p>
+                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta" para ver tiempo estimado y peajes hacia tu rareza.</p>
                 </div>
             </div>
         </aside>
@@ -166,6 +180,7 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' }).addTo(map);
 
         let routingControl = null;
+        let routeSummaryMarker = null; // Controla el globo azul flotante de Maps
         let userLocation = null;
         let markers = {}; 
         let markerLayers = L.layerGroup().addTo(map);
@@ -175,7 +190,6 @@
         let imageCache = {}; 
         let maskLayer = null;
 
-        // Regiones para el difuminado
         const regionQueryNames = {
             'CL-AP': 'Región de Arica y Parinacota', 'CL-TA': 'Región de Tarapacá', 'CL-AN': 'Región de Antofagasta',
             'CL-AT': 'Región de Atacama', 'CL-CO': 'Región de Coquimbo', 'CL-VS': 'Región de Valparaíso',
@@ -196,7 +210,7 @@
             navigator.geolocation.getCurrentPosition(pos => userLocation = L.latLng(pos.coords.latitude, pos.coords.longitude));
         }
 
-        // --- SISTEMA RESTAURADO Y MEJORADO DE HOTSPOTS EN RUTA ---
+        // --- SISTEMA HOTSPOTS ---
         window.fetchHotspotBirds = async function(locId) {
             const container = document.getElementById(`hs-birds-${locId}`);
             if(!container) return; 
@@ -226,13 +240,7 @@
             hotspotLayers.clearLayers();
             const coords = route.coordinates;
             
-            // Toma 3 puntos estratégicos (Inicio, Medio, Fin) para asegurar que rutas largas queden cubiertas
-            const samples = [
-                coords[0],
-                coords[Math.floor(coords.length / 2)],
-                coords[coords.length - 1]
-            ];
-            
+            const samples = [ coords[0], coords[Math.floor(coords.length / 2)], coords[coords.length - 1] ];
             let allHotspots = [];
             let seenHs = new Set();
 
@@ -244,16 +252,12 @@
                     if(res.ok) {
                         const data = await res.json();
                         data.forEach(hs => {
-                            if(!seenHs.has(hs.locId)) { 
-                                seenHs.add(hs.locId); 
-                                allHotspots.push(hs); 
-                            }
+                            if(!seenHs.has(hs.locId)) { seenHs.add(hs.locId); allHotspots.push(hs); }
                         });
                     }
-                } catch(e) { console.error("Error en barrido de hotspots", e); }
+                } catch(e) {}
             }
             
-            // Filtra solo los que están a un máximo de 4km de la línea de la ruta
             const routeHotspots = allHotspots.filter(hs => {
                 return coords.some(c => {
                     const dLat = (c.lat - hs.lat) * 111;
@@ -263,12 +267,7 @@
             });
 
             routeHotspots.forEach(hs => {
-                const icon = L.divIcon({
-                    html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>',
-                    className: 'hotspot-icon',
-                    iconSize: [30, 30]
-                });
-
+                const icon = L.divIcon({ html: '<i class="fa-solid fa-camera" style="color:#f59e0b; font-size:18px;"></i>', className: 'hotspot-icon', iconSize: [30, 30] });
                 const marker = L.marker([hs.lat, hs.lng], {icon: icon}).bindPopup(`
                     <div style="padding:5px; width: 230px;">
                         <h4 style="color:#d97706; margin-bottom:5px; font-size: 1.1rem;"><i class="fa-solid fa-map-pin"></i> Hotspot eBird</h4>
@@ -278,14 +277,12 @@
                         <div id="hs-birds-${hs.locId}" style="font-size:0.85rem; color:#4b5563; margin-top: 5px;"></div>
                     </div>
                 `);
-                
-                // Cargar aves automáticamente al abrir la tarjeta del Hotspot
                 marker.on('popupopen', () => fetchHotspotBirds(hs.locId));
                 hotspotLayers.addLayer(marker);
             });
         }
 
-        // --- SISTEMA RESTAURADO DE DIFUMINADO DE REGIONES ---
+        // --- SISTEMA MÁSCARA ---
         async function applyRegionMask(regionCode) {
             if (maskLayer) map.removeLayer(maskLayer);
             if (regionCode === 'ALL') return;
@@ -312,10 +309,10 @@
                     const boundsLayer = L.geoJSON(geojson);
                     map.fitBounds(boundsLayer.getBounds());
                 }
-            } catch(e) { console.error("Error difuminando región", e); }
+            } catch(e) {}
         }
 
-        // --- SISTEMA IMÁGENES ASÍNCRONAS ---
+        // --- IMÁGENES ASÍNCRONAS ---
         async function fetchImageForBird(sciName, listImgId) {
             if (imageCache[sciName]) { applyImage(listImgId, imageCache[sciName]); return; }
             try {
@@ -345,7 +342,6 @@
 
         function buildPopupHTML(bird) {
             const imgUrl = imageCache[bird.sciName] || 'https://images.unsplash.com/photo-1552728089-5716928e18ff?auto=format&fit=crop&w=400&q=80';
-            
             let timeString = "No especificada";
             if (bird.obsDt && bird.obsDt.includes(' ')) {
                 let [hour, minute] = bird.obsDt.split(' ')[1].split(':');
@@ -445,14 +441,8 @@
             const unique = [];
             rawBirds.forEach(b => {
                 if(!b.obsValid) return;
-                
-                // Llave única basada estrictamente en el código de especie para evitar duplicados
                 const key = b.speciesCode; 
-                
-                if(!seen.has(key)) { 
-                    seen.add(key); 
-                    unique.push(b); 
-                }
+                if(!seen.has(key)) { seen.add(key); unique.push(b); }
             });
             return unique;
         }
@@ -489,25 +479,64 @@
             renderBirdsAndMap(currentFilteredBirds);
         };
 
+        // --- SISTEMA DE RUTAS ESTILO GOOGLE MAPS ---
         window.drawRoute = function(lat, lng) {
             if (!userLocation) { alert("Activa el GPS."); return; }
             
             const placeholder = document.getElementById('ruta-placeholder');
             if(placeholder) placeholder.style.display = 'none';
-
             if (routingControl) map.removeControl(routingControl);
+            if (routeSummaryMarker) map.removeLayer(routeSummaryMarker);
 
             routingControl = L.Routing.control({
                 waypoints: [userLocation, L.latLng(lat, lng)], language: 'es',
-                lineOptions: { styles: [{color: '#f97316', weight: 5}] }
+                lineOptions: { styles: [{color: '#1a73e8', opacity: 0.9, weight: 6}] }, // Línea azul Maps
+                show: false
             }).addTo(map);
 
             routingControl.on('routeselected', function(e) {
                 const container = document.querySelector('.leaflet-routing-container');
-                if(container) document.getElementById('tab-ruta').appendChild(container);
+                if(container) {
+                    container.style.display = 'block';
+                    document.getElementById('tab-ruta').appendChild(container);
+                }
                 
-                // DISPARA LA BÚSQUEDA DE HOTSPOTS AL CALCULAR LA RUTA
-                findHotspotsAlongRoute(e.route);
+                // 1. Extraer Estadísticas
+                const route = e.route;
+                const totalKm = (route.summary.totalDistance / 1000).toFixed(1);
+                const totalMin = Math.round(route.summary.totalTime / 60);
+                const hours = Math.floor(totalMin / 60);
+                const mins = totalMin % 60;
+                const timeStr = hours > 0 ? `${hours} h ${mins} min` : `${mins} min`;
+
+                // 2. Buscar Peajes en las instrucciones de navegación
+                let tollCount = 0;
+                route.instructions.forEach(inst => {
+                    if (inst.text && inst.text.toLowerCase().match(/peaje|cobro/)) {
+                        tollCount++;
+                    }
+                });
+                const tollStr = tollCount > 0 ? `<br>🪙 ${tollCount} peaje(s)` : `<br>🛣️ Sin peajes`;
+
+                // 3. Crear el Globo Flotante (Píldora Maps)
+                const midPoint = route.coordinates[Math.floor(route.coordinates.length / 2)];
+                const iconHtml = `
+                    <div class="maps-summary-pill">
+                        <span class="maps-time">${timeStr}</span>
+                        <span class="maps-dist">${totalKm} km ${tollStr}</span>
+                    </div>`;
+
+                const summaryIcon = L.divIcon({
+                    html: iconHtml,
+                    className: 'maps-pill-container',
+                    iconSize: [120, 50],
+                    iconAnchor: [60, 25]
+                });
+
+                routeSummaryMarker = L.marker([midPoint.lat, midPoint.lng], {icon: summaryIcon}).addTo(map);
+
+                // 4. Buscar Hotspots al escanear la ruta
+                findHotspotsAlongRoute(route);
             });
 
             map.closePopup();
