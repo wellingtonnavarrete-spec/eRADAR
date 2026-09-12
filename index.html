@@ -55,7 +55,7 @@
         .list-item:hover { background: #f9fafb; }
         
         .list-item-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background: #e5e7eb; position: relative; }
-        .list-item-img.loading::after { content: "\f110"; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; animation: spin 1s linear infinite; }
+        .list-item-img.loading::after { content: "110"; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
 
         .list-item-info { display: flex; flex-direction: column; justify-content: center; }
@@ -162,7 +162,7 @@
                 <div style="text-align: center; color: var(--text-gray); margin-top: 20px;" id="ruta-placeholder">
                     <i class="fa-solid fa-map-location-dot" style="font-size: 2rem; margin-bottom: 10px; color: #ddd;"></i>
                     <p>Aún no hay ruta activa.</p>
-                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta" para ver tiempo estimado y peajes hacia tu rareza.</p>
+                    <p style="font-size: 0.8rem; margin-top: 5px;">Toca "Trazar ruta" para ver tiempo estimado y peajes hacia tu rareza. Al planificar tu viaje hacia la costa por humedales (como Nehuentue o Puerto Saavedra), se buscarán automáticamente paradas eBird en el camino para aprovechar ese 300mm.</p>
                 </div>
             </div>
         </aside>
@@ -349,7 +349,13 @@
                 timeString = `${(h % 12 || 12).toString().padStart(2, '0')}:${minute} ${h >= 12 ? 'p.m.' : 'a.m.'}`;
             }
 
-            const waMsg = `🐦 ${bird.comName} (${bird.sciName})\n⚠️ Rareza\n📍 ${bird.locName}\n🕒 ${timeString}\n🔢 ${bird.howMany || 'X'} ejemplar(es)\n🗺️ https://www.google.com/maps?q=${bird.lat},${bird.lng}\n📋 https://ebird.org/checklist/${bird.subId}`;
+            const waMsg = `🐦 ${bird.comName} (${bird.sciName})
+⚠️ Rareza
+📍 ${bird.locName}
+🕒 ${timeString}
+🔢 ${bird.howMany || 'X'} ejemplar(es)
+🗺️ https://www.google.com/maps?q=${bird.lat},${bird.lng}
+📋 https://ebird.org/checklist/${bird.subId}`;
             const mapsLink = `https://www.google.com/maps/search/?api=1&query=${bird.lat},${bird.lng}`;
 
             return `
@@ -378,7 +384,7 @@
 
         function generateDynamicPills(birdsData) {
             const container = document.getElementById('dynamic-pills');
-            container.innerHTML = '<button class="pill active-pill" onclick="filterBySpecies(\'ALL\', this)">Todas</button>';
+            container.innerHTML = '<button class="pill active-pill" onclick="filterBySpecies('ALL', this)">Todas</button>';
             const uniqueNames = [...new Set(birdsData.map(b => b.comName))];
             uniqueNames.slice(0, 15).forEach(name => {
                 const btn = document.createElement('button');
